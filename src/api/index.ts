@@ -42,3 +42,11 @@ export const settlementApi = {
   calculate: async (tripId: number): Promise<Settlement[]> => apiClient.get(`/trips/${tripId}/settlement`),
 };
 
+export const fxApi = {
+  getRate: async (from: string, to: string, date?: string): Promise<{ from_currency: string; to_currency: string; rate: number; date: string }> => {
+    const params = new URLSearchParams({ from_currency: from, to_currency: to });
+    if (date) params.append('date', date);
+    return apiClient.get(`/fx/rate?${params.toString()}`);
+  },
+};
+

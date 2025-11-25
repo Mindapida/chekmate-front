@@ -1,17 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
 import BottomNav from '../components/BottomNav';
 import './CalendarPage.css';
 
-// Face emoji icons for trip participants
-const FACE_EMOJIS = ['😊', '😎', '🥳', '😄', '🤗'];
+// Mood emoji icons: sad, heart, rain, sunny
+const MOOD_EMOJIS = ['😢', '❤️', '🌧️', '☀️'];
+
+// Local storage key for emoji data
+const EMOJI_STORAGE_KEY = 'calendar_emojis';
+
+interface EmojiData {
+  [tripId: number]: {
+    [dateKey: string]: string;
+  };
+}
 
 export default function CalendarPage() {
   const navigate = useNavigate();
   const { currentTrip } = useTrips();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [emojiData, setEmojiData] = useState<EmojiData>({});
+
+  // Load emoji data from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem(EMOJI_STORAGE_KEY);
+    if (stored) {
+      setEmojiData(JSON.parse(stored));
+    }
+  }, []);
+
+  // Save emoji data to localStorage
+  const saveEmojiData = (data: EmojiData) => {
+    localStorage.setItem(EMOJI_STORAGE_KEY, JSON.stringify(data));
+    setEmojiData(data);
+  };
 
   if (!currentTrip) {
     return (
@@ -46,25 +70,64 @@ export default function CalendarPage() {
     return checkDate >= tripStart && checkDate <= tripEnd;
   };
 
+  const isStartDate = (day: number) => {
+    const checkDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    return checkDate.toDateString() === tripStart.toDateString();
+  };
+
+  const isEndDate = (day: number) => {
+    const checkDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    return checkDate.toDateString() === tripEnd.toDateString();
+  };
+
   const isSelectedDate = (day: number) => {
     if (!selectedDate) return false;
     const checkDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     return checkDate.toDateString() === selectedDate.toDateString();
   };
 
-  const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
-    'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+  const getDateKey = (day: number) => {
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    return date.toISOString().split('T')[0];
+  };
 
-  const dayNames = ['SUN', 'MON', 'TUE', 'WEN', 'THU', 'FRI', 'SAT'];
+  const getEmojiForDay = (day: number) => {
+    if (!currentTrip) return null;
+    const dateKey = getDateKey(day);
+    return emojiData[currentTrip.id]?.[dateKey] || null;
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    if (!selectedDate || !currentTrip) return;
+    
+    const dateKey = selectedDate.toISOString().split('T')[0];
+    const newData = { ...emojiData };
+    
+    if (!newData[currentTrip.id]) {
+      newData[currentTrip.id] = {};
+    }
+    
+    // Toggle: if same emoji, remove it
+    if (newData[currentTrip.id][dateKey] === emoji) {
+      delete newData[currentTrip.id][dateKey];
+    } else {
+      newData[currentTrip.id][dateKey] = emoji;
+    }
+    
+    saveEmojiData(newData);
+  };
+
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+
+  const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
   const prevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
-    setSelectedDate(null);
   };
 
   const nextMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
-    setSelectedDate(null);
   };
 
   const handleDayClick = (day: number) => {
@@ -72,17 +135,19 @@ export default function CalendarPage() {
     setSelectedDate(clickedDate);
   };
 
+  const formatSelectedDate = () => {
+    if (!selectedDate) return '';
+    const options: Intl.DateTimeFormatOptions = { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    };
+    return selectedDate.toLocaleDateString('en-US', options);
+  };
+
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDay = getFirstDayOfMonth(currentDate);
-
-  // Create array of all days including empty slots
-  const calendarDays = [];
-  for (let i = 0; i < firstDay; i++) {
-    calendarDays.push({ day: 0, isEmpty: true });
-  }
-  for (let i = 1; i <= daysInMonth; i++) {
-    calendarDays.push({ day: i, isEmpty: false });
-  }
 
   return (
     <div className="calendar-page">
@@ -95,77 +160,135 @@ export default function CalendarPage() {
           </div>
         </header>
 
-        {/* Calendar Container */}
-        <div className="calendar-container">
+        {/* Trip Info Bar */}
+        <div className="trip-info-bar">
+          <span className="trip-icon">✈️</span>
+          <span className="trip-name">{currentTrip.name}</span>
+          <span className="trip-dates">{currentTrip.start_date} ~ {currentTrip.end_date}</span>
+        </div>
+
+        {/* Calendar */}
+        <div className="calendar-wrapper">
           {/* Month Navigation */}
-          <div className="month-header">
-            <button className="nav-btn" onClick={prevMonth}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M15 18L9 12L15 6" stroke="#171717" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <div className="month-nav">
+            <button className="month-btn" onClick={prevMonth}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
             <div className="month-title">
-              <span className="month-name">{monthNames[currentDate.getMonth()]}</span>
-              <span className="month-icon">✈️</span>
+              <span>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
             </div>
-            <button className="nav-btn" onClick={nextMonth}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M9 18L15 12L9 6" stroke="#171717" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <button className="month-btn" onClick={nextMonth}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
           </div>
 
-          {/* Day Names Header */}
-          <div className="days-header">
+          {/* Day Names */}
+          <div className="day-names">
             {dayNames.map(day => (
-              <div key={day} className="day-header-cell">{day}</div>
+              <div key={day} className={`day-name ${day === 'SUN' ? 'sun' : day === 'SAT' ? 'sat' : ''}`}>
+                {day}
+              </div>
             ))}
           </div>
 
           {/* Days Grid */}
-          <div className="days-divider"></div>
           <div className="days-grid">
-            {calendarDays.map((item, index) => {
-              const inTrip = !item.isEmpty && isInTripRange(item.day);
-              const selected = !item.isEmpty && isSelectedDate(item.day);
-              
+            {Array.from({ length: firstDay }).map((_, i) => (
+              <div key={`empty-${i}`} className="day-cell empty"></div>
+            ))}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const inTrip = isInTripRange(day);
+              const isStart = isStartDate(day);
+              const isEnd = isEndDate(day);
+              const isSelected = isSelectedDate(day);
+              const dayOfWeek = (firstDay + i) % 7;
+              const isSunday = dayOfWeek === 0;
+              const isSaturday = dayOfWeek === 6;
+              const emoji = getEmojiForDay(day);
+
               return (
                 <div 
-                  key={index}
-                  className={`day-cell ${item.isEmpty ? 'empty' : ''} ${inTrip ? 'in-trip' : ''} ${selected ? 'selected' : ''}`}
-                  onClick={() => !item.isEmpty && handleDayClick(item.day)}
+                  key={day} 
+                  className={`day-cell 
+                    ${inTrip ? 'in-trip' : ''} 
+                    ${isStart ? 'trip-start' : ''} 
+                    ${isEnd ? 'trip-end' : ''} 
+                    ${isSelected ? 'selected' : ''}
+                    ${isSunday ? 'sunday' : ''}
+                    ${isSaturday ? 'saturday' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
                 >
-                  {!item.isEmpty && (
-                    <div className="day-badge">{item.day}</div>
+                  <span className="day-number">{day}</span>
+                  {emoji && <span className="day-emoji">{emoji}</span>}
+                  {(isStart || isEnd) && !emoji && (
+                    <span className="trip-marker">{isStart ? '🛫' : '🛬'}</span>
                   )}
                 </div>
               );
             })}
           </div>
 
-          {/* Bottom Section - Face Emojis & Buttons */}
-          <div className="calendar-actions">
-            {/* Face Emoji Row */}
-            <div className="face-emoji-row">
-              {FACE_EMOJIS.map((emoji, idx) => (
-                <button key={idx} className="face-emoji-btn">
-                  {emoji}
-                </button>
-              ))}
+          {/* Legend */}
+          <div className="calendar-legend">
+            <div className="legend-item">
+              <span className="legend-dot trip"></span>
+              <span>Trip Period</span>
             </div>
-
-            {/* Action Buttons */}
-            <div className="action-buttons">
-              <button className="action-btn expense-btn">
-                <span className="btn-icon">💰</span>
-                <span className="btn-text">EXPENSE</span>
-              </button>
-              <button className="action-btn photo-btn">
-                <span className="btn-icon">📷</span>
-                <span className="btn-text">PHOTO</span>
-              </button>
+            <div className="legend-item">
+              <span className="legend-dot selected"></span>
+              <span>Selected</span>
             </div>
           </div>
+        </div>
+
+        {/* Emoji Selector - Always visible */}
+        <div className="emoji-section">
+          <div className="emoji-header">
+            {selectedDate ? (
+              <>
+                <span className="emoji-date-icon">📅</span>
+                <span className="emoji-date">{formatSelectedDate()}</span>
+              </>
+            ) : (
+              <span className="emoji-hint">👆 Select a date to add mood</span>
+            )}
+          </div>
+          
+          <div className="emoji-selector">
+            {MOOD_EMOJIS.map((emoji, idx) => (
+              <button 
+                key={idx} 
+                className={`emoji-btn ${!selectedDate ? 'disabled' : ''} ${selectedDate && getEmojiForDay(selectedDate.getDate()) === emoji ? 'active' : ''}`}
+                onClick={() => handleEmojiSelect(emoji)}
+                disabled={!selectedDate}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+
+          {/* Action Buttons */}
+          {selectedDate && isInTripRange(selectedDate.getDate()) && (
+            <div className="action-buttons">
+              <button 
+                className="action-btn expense-btn"
+                onClick={() => navigate(`/expense?date=${selectedDate.toISOString().split('T')[0]}`)}
+              >
+                <span className="action-icon">💰</span>
+                <span className="action-text">EXPENSE</span>
+              </button>
+              <button className="action-btn photo-btn">
+                <span className="action-icon">📷</span>
+                <span className="action-text">PHOTO</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
       <BottomNav activeTab="calendar" />
