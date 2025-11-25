@@ -1,13 +1,44 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/BottomNav';
+import AddTripModal from '../components/AddTripModal';
 import './HomePage.css';
 
-const trips: { id: number; name: string; startDate: string; endDate: string; color: string; }[] = [];
+interface Trip {
+  id: number;
+  name: string;
+  startDate: string;
+  endDate: string;
+  color: string;
+}
+
+const TRIP_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const handleTripClick = (tripId: number) => navigate(`/trip/${tripId}`);
-  const handleAddTrip = () => console.log('Add Trip clicked');
+  const handleAddTrip = () => setIsModalOpen(true);
+
+  const handleCreateTrip = (tripData: { name: string; startDate: string; endDate: string }) => {
+    const newTrip: Trip = {
+      id: Date.now(),
+      name: tripData.name,
+      startDate: tripData.startDate,
+      endDate: tripData.endDate,
+      color: TRIP_COLORS[trips.length % TRIP_COLORS.length],
+    };
+    setTrips([...trips, newTrip]);
+  };
+
+  const formatDateRange = (start: string, end: string) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    return `${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)}`;
+  };
 
   return (
     <div className="home-page">
@@ -39,7 +70,7 @@ export default function HomePage() {
                   <div className="trip-icon" style={{ backgroundColor: trip.color }}>✈️</div>
                   <div className="trip-info">
                     <div className="trip-name"><span>📍</span><span>{trip.name}</span></div>
-                    <div className="trip-dates"><span>📅</span><span>{trip.startDate} - {trip.endDate}</span></div>
+                    <div className="trip-dates"><span>📅</span><span>{formatDateRange(trip.startDate, trip.endDate)}</span></div>
                   </div>
                 </div>
               ))}
@@ -49,6 +80,12 @@ export default function HomePage() {
         </div>
       </div>
       <BottomNav activeTab="home" />
+      
+      <AddTripModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onCreateTrip={handleCreateTrip}
+      />
     </div>
   );
 }
