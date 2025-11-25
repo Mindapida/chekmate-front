@@ -10,18 +10,37 @@ html, body {
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
+  background: #1a1a2e;
 }
 
 body {
   font-family: 'Quicksand', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  justify-content: center;
 }
 
 #root {
   width: 100%;
+  max-width: 430px; /* iPhone 14 Pro Max width */
   min-height: 100vh;
   min-height: 100dvh;
+  background: #fafafa;
+  position: relative;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile-first: On actual mobile devices, use full width */
+@media (max-width: 430px) {
+  #root {
+    max-width: 100%;
+    box-shadow: none;
+  }
+  
+  body {
+    background: #fafafa;
+  }
 }
 
 input, button, textarea, select {
