@@ -5,7 +5,7 @@ import { fxApi, expensesApi, tripsApi, ocrApi } from '../api';
 import type { Expense, TripParticipant } from '../types/api';
 import './ExpensePage.css';
 
-// Category emoji mapping
+// Category emoji mapping - 9 categories from Figma
 const CATEGORIES = [
   { emoji: '🍽️', name: 'Food' },
   { emoji: '🍺', name: 'Drinks' },
@@ -19,7 +19,7 @@ const CATEGORIES = [
 ];
 
 // Currencies
-const CURRENCIES = ['KRW', 'USD', 'JPY', 'EUR', 'CNY', 'AUD'];
+const CURRENCIES = ['KRW', 'USD', 'JPY', 'EUR', 'GBP', 'CNY', 'AUD'];
 
 // OCR Preview Item type
 interface OcrItem {
@@ -51,12 +51,14 @@ export default function ExpensePage() {
   // Add expense modal
   const [showAddModal, setShowAddModal] = useState(false);
   const [newExpense, setNewExpense] = useState({
-    time: '',
+    hour: '12',
+    minute: '00',
     amount: '',
     currency: 'JPY',
     place: '',
     category: '',
     paid_by: 0,
+    split_with: [] as number[],
   });
 
   // OCR states
@@ -111,11 +113,13 @@ export default function ExpensePage() {
   };
 
   const handleAddExpense = async () => {
-    if (!currentTrip || !newExpense.time || !newExpense.amount || !newExpense.category) return;
+    if (!currentTrip || !newExpense.amount || !newExpense.category) return;
+    
+    const time = `${newExpense.hour.padStart(2, '0')}:${newExpense.minute.padStart(2, '0')}`;
     
     const expense: Omit<Expense, 'id' | 'trip_id' | 'created_at'> = {
       date: selectedDate,
-      time: newExpense.time,
+      time: time,
       amount: parseFloat(newExpense.amount),
       currency: newExpense.currency,
       category: newExpense.category,
@@ -134,7 +138,7 @@ export default function ExpensePage() {
     }
     
     setShowAddModal(false);
-    setNewExpense({ time: '', amount: '', currency: 'JPY', place: '', category: '', paid_by: 0 });
+    setNewExpense({ hour: '12', minute: '00', amount: '', currency: 'JPY', place: '', category: '', paid_by: 0, split_with: [] });
   };
 
   // Handle file upload for OCR
@@ -158,7 +162,6 @@ export default function ExpensePage() {
       setOcrItems(results.map(item => ({ ...item, selected: true })));
     } catch (error) {
       console.warn('OCR failed, showing manual entry');
-      // Fallback: show empty items for manual entry
       setOcrItems([{
         amount: 0,
         currency: 'KRW',
@@ -182,7 +185,7 @@ export default function ExpensePage() {
         time: new Date().toTimeString().slice(0, 5),
         amount: item.amount,
         currency: item.currency,
-        category: 'Food', // Default category
+        category: 'Food',
         place: item.description,
         paid_by: 0,
       };
@@ -222,6 +225,7 @@ export default function ExpensePage() {
       'EUR': fxRate.rate * 1.1,
       'CNY': fxRate.rate / 7.2,
       'AUD': fxRate.rate / 1.5,
+      'GBP': fxRate.rate * 1.3,
     };
     return Math.round(amount * (rates[currency] || 1));
   };
@@ -230,6 +234,20 @@ export default function ExpensePage() {
     const cat = CATEGORIES.find(c => c.name.toLowerCase() === category.toLowerCase());
     return cat?.emoji || '📝';
   };
+
+  const toggleSplitWith = (participantId: number) => {
+    setNewExpense(prev => ({
+      ...prev,
+      split_with: prev.split_with.includes(participantId)
+        ? prev.split_with.filter(id => id !== participantId)
+        : [...prev.split_with, participantId]
+    }));
+  };
+
+  // Generate hour options (00-23)
+  const hourOptions = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+  // Generate minute options (00-59, step 5)
+  const minuteOptions = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'));
 
   if (!currentTrip) {
     return (
@@ -255,68 +273,79 @@ export default function ExpensePage() {
 
       {/* Header */}
       <header className="expense-header">
-        <button className="back-btn" onClick={handleBack}>
+        <div className="header-left">
+          <span className="logo-check">✓</span>
+          <span className="logo-text">CHECKMATE</span>
+        </div>
+        <button className="close-btn" onClick={handleBack}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </button>
-        <div className="header-title">EXPENSE 💰</div>
-        <div style={{ width: 36 }}></div>
       </header>
+
+      {/* Title & Actions */}
+      <div className="expense-title-bar">
+        <div className="title-row">
+          <span className="title-text">EXPENSE</span>
+          <span className="title-emoji">💰</span>
+        </div>
+        <div className="action-row">
+          <button className="action-btn screenshot" onClick={() => fileInputRef.current?.click()}>
+            <span className="icon">📷</span>
+            <span>Upload Screenshot</span>
+          </button>
+          <button className="action-btn manual" onClick={() => setShowAddModal(true)}>
+            <span className="icon">✏️</span>
+            <span>ADD MANUALLY</span>
+          </button>
+        </div>
+      </div>
 
       {/* FX Rate */}
       <div className="fx-bar">
-        <span className="fx-icon">💱</span>
-        <span className="fx-text">
-          {fxLoading ? 'Loading...' : `1 USD = ${fxRate?.rate.toLocaleString() || '---'} KRW`}
-        </span>
+        <span className="fx-label">FX RATE</span>
+        <span className="fx-value">1 USD =</span>
+        <span className="fx-rate">{fxLoading ? '...' : `${fxRate?.rate.toLocaleString() || '---'} KRW`}</span>
+        <button className="fx-refresh">🔄</button>
       </div>
 
-      {/* Date & Actions */}
-      <div className="date-actions">
-        <div className="current-date">
-          <span>📅</span>
-          <span>{formatDate(selectedDate)}</span>
-        </div>
-        <div className="action-btns">
-          <button className="action-btn upload" onClick={() => fileInputRef.current?.click()}>
-            📷 Screenshot
-          </button>
-          <button className="action-btn manual" onClick={() => setShowAddModal(true)}>
-            ✏️ Manual
-          </button>
-        </div>
+      {/* Date */}
+      <div className="date-bar">
+        <span className="date-icon">📅</span>
+        <span className="date-text">{formatDate(selectedDate)}</span>
       </div>
 
       {/* Expenses List */}
       <div className="expenses-container">
         {loading ? (
           <div className="loading-state">
-            <span>💰</span>
+            <span className="spinner">💰</span>
             <p>Loading expenses...</p>
           </div>
         ) : expenses.length === 0 ? (
           <div className="empty-state">
-            <span>📝</span>
+            <span className="empty-icon">📝</span>
             <p>No expenses for this day</p>
-            <p className="hint">Upload a bank screenshot or add manually</p>
+            <p className="hint">Upload a screenshot or add manually</p>
           </div>
         ) : (
           <div className="expenses-list">
             {expenses.map((expense) => (
-              <div key={expense.id} className="expense-item">
-                <div className="expense-icon">{getCategoryEmoji(expense.category)}</div>
-                <div className="expense-info">
-                  <div className="expense-place">{expense.place || 'Unknown'}</div>
-                  <div className="expense-time">{expense.time}</div>
+              <div key={expense.id} className="expense-card">
+                <div className="expense-time">{expense.time}</div>
+                <div className="expense-category">{getCategoryEmoji(expense.category)}</div>
+                <div className="expense-details">
+                  <div className="amount-row">
+                    <span className="original">{expense.amount.toLocaleString()} {expense.currency}</span>
+                    <span className="arrow">→</span>
+                    <span className="converted">{convertToKRW(expense.amount, expense.currency).toLocaleString()} KRW</span>
+                  </div>
+                  <div className="place">{expense.place || 'No place'}</div>
                 </div>
-                <div className="expense-amount">
-                  <div className="amount-original">
-                    {expense.amount.toLocaleString()} {expense.currency}
-                  </div>
-                  <div className="amount-krw">
-                    ≈ {convertToKRW(expense.amount, expense.currency).toLocaleString()} KRW
-                  </div>
+                <div className="payer-info">
+                  <span className="payer-name">Me</span>
+                  <span className="split-count">👥</span>
                 </div>
               </div>
             ))}
@@ -324,35 +353,53 @@ export default function ExpensePage() {
         )}
       </div>
 
-      {/* Manual Add Modal */}
+      {/* Add Expense Modal - Figma Style */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-box" onClick={e => e.stopPropagation()}>
+        <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
+          <div className="add-expense-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>✏️ Add Expense</h3>
-              <button onClick={() => setShowAddModal(false)}>✕</button>
+              <h3>Add Expense</h3>
+              <button className="close-modal" onClick={() => setShowAddModal(false)}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M15 5L5 15M5 5L15 15" stroke="#6B7280" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
             </div>
 
             <div className="modal-body">
-              <div className="input-group">
+              {/* Time - Hour & Minute */}
+              <div className="form-section">
                 <label>Time</label>
-                <input 
-                  type="time" 
-                  value={newExpense.time}
-                  onChange={e => setNewExpense({...newExpense, time: e.target.value})}
-                />
+                <div className="time-picker">
+                  <select 
+                    value={newExpense.hour}
+                    onChange={e => setNewExpense({...newExpense, hour: e.target.value})}
+                  >
+                    {hourOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                  <span className="time-separator">:</span>
+                  <select 
+                    value={newExpense.minute}
+                    onChange={e => setNewExpense({...newExpense, minute: e.target.value})}
+                  >
+                    {minuteOptions.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
               </div>
 
-              <div className="input-group">
-                <label>Amount</label>
-                <div className="amount-input">
+              {/* Amount & Currency */}
+              <div className="form-section">
+                <label>Amount & Currency</label>
+                <div className="amount-currency-row">
                   <input 
-                    type="number" 
+                    type="number"
+                    className="amount-input"
                     placeholder="0"
                     value={newExpense.amount}
                     onChange={e => setNewExpense({...newExpense, amount: e.target.value})}
                   />
                   <select 
+                    className="currency-select"
                     value={newExpense.currency}
                     onChange={e => setNewExpense({...newExpense, currency: e.target.value})}
                   >
@@ -361,36 +408,40 @@ export default function ExpensePage() {
                 </div>
               </div>
 
-              <div className="input-group">
+              {/* Place */}
+              <div className="form-section">
                 <label>Place</label>
                 <input 
-                  type="text" 
+                  type="text"
+                  className="place-input"
                   placeholder="Where did you spend?"
                   value={newExpense.place}
                   onChange={e => setNewExpense({...newExpense, place: e.target.value})}
                 />
               </div>
 
-              <div className="input-group">
+              {/* Category - 3x3 Grid */}
+              <div className="form-section">
                 <label>Category</label>
-                <div className="category-select">
+                <div className="category-grid">
                   {CATEGORIES.map(cat => (
                     <button 
                       key={cat.name}
-                      className={`cat-btn ${newExpense.category === cat.name ? 'active' : ''}`}
+                      className={`category-btn ${newExpense.category === cat.name ? 'active' : ''}`}
                       onClick={() => setNewExpense({...newExpense, category: cat.name})}
                     >
-                      {cat.emoji}
+                      <span className="cat-emoji">{cat.emoji}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="input-group">
+              {/* Paid by */}
+              <div className="form-section">
                 <label>Paid by</label>
-                <div className="payer-select">
+                <div className="payer-row">
                   <button 
-                    className={`payer-btn ${newExpense.paid_by === 0 ? 'active' : ''}`}
+                    className={`payer-chip ${newExpense.paid_by === 0 ? 'active' : ''}`}
                     onClick={() => setNewExpense({...newExpense, paid_by: 0})}
                   >
                     Me
@@ -398,7 +449,7 @@ export default function ExpensePage() {
                   {participants.map(p => (
                     <button 
                       key={p.id}
-                      className={`payer-btn ${newExpense.paid_by === p.id ? 'active' : ''}`}
+                      className={`payer-chip ${newExpense.paid_by === p.id ? 'active' : ''}`}
                       onClick={() => setNewExpense({...newExpense, paid_by: p.id})}
                     >
                       {p.name}
@@ -406,11 +457,39 @@ export default function ExpensePage() {
                   ))}
                 </div>
               </div>
+
+              {/* Split with */}
+              <div className="form-section">
+                <label>Split with</label>
+                <div className="split-row">
+                  {participants.length === 0 ? (
+                    <span className="no-participants">Add participants to split</span>
+                  ) : (
+                    participants.map(p => (
+                      <label key={p.id} className="split-checkbox">
+                        <input 
+                          type="checkbox"
+                          checked={newExpense.split_with.includes(p.id)}
+                          onChange={() => toggleSplitWith(p.id)}
+                        />
+                        <span className="checkmark"></span>
+                        <span className="name">{p.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="modal-footer">
-              <button className="btn-cancel" onClick={() => setShowAddModal(false)}>Cancel</button>
-              <button className="btn-save" onClick={handleAddExpense}>Save</button>
+              <button className="cancel-btn" onClick={() => setShowAddModal(false)}>Cancel</button>
+              <button 
+                className="add-btn"
+                onClick={handleAddExpense}
+                disabled={!newExpense.amount || !newExpense.category}
+              >
+                Add Expense
+              </button>
             </div>
           </div>
         </div>
@@ -418,22 +497,24 @@ export default function ExpensePage() {
 
       {/* OCR Modal */}
       {showOcrModal && (
-        <div className="modal-overlay" onClick={() => setShowOcrModal(false)}>
-          <div className="modal-box ocr-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-backdrop" onClick={() => setShowOcrModal(false)}>
+          <div className="ocr-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3>📷 Screenshot OCR</h3>
-              <button onClick={() => setShowOcrModal(false)}>✕</button>
+              <button className="close-modal" onClick={() => setShowOcrModal(false)}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M15 5L5 15M5 5L15 15" stroke="#6B7280" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
             </div>
 
             <div className="modal-body">
-              {/* Image Preview */}
               {uploadedImage && (
                 <div className="image-preview">
-                  <img src={uploadedImage} alt="Uploaded receipt" />
+                  <img src={uploadedImage} alt="Receipt" />
                 </div>
               )}
 
-              {/* OCR Results */}
               {ocrLoading ? (
                 <div className="ocr-loading">
                   <div className="spinner">🔍</div>
@@ -441,26 +522,22 @@ export default function ExpensePage() {
                 </div>
               ) : (
                 <div className="ocr-results">
-                  <p className="results-title">Found {ocrItems.length} item(s)</p>
+                  <p className="result-count">Found {ocrItems.length} item(s)</p>
                   {ocrItems.map((item, idx) => (
                     <div key={idx} className={`ocr-item ${item.selected ? 'selected' : ''}`}>
-                      <button 
-                        className="select-btn"
-                        onClick={() => toggleOcrItem(idx)}
-                      >
+                      <button className="select-btn" onClick={() => toggleOcrItem(idx)}>
                         {item.selected ? '✅' : '⬜'}
                       </button>
-                      <div className="ocr-item-details">
+                      <div className="item-details">
                         <input 
-                          className="ocr-desc"
+                          className="desc-input"
                           value={item.description}
                           onChange={e => updateOcrItem(idx, 'description', e.target.value)}
-                          placeholder="Description"
                         />
-                        <div className="ocr-amount-row">
+                        <div className="amount-row">
                           <input 
                             type="number"
-                            className="ocr-amount"
+                            className="amount-input"
                             value={item.amount}
                             onChange={e => updateOcrItem(idx, 'amount', parseFloat(e.target.value) || 0)}
                           />
@@ -471,9 +548,7 @@ export default function ExpensePage() {
                             {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
                         </div>
-                        <div className="ocr-krw">
-                          ≈ {convertToKRW(item.amount, item.currency).toLocaleString()} KRW
-                        </div>
+                        <div className="krw-value">≈ {convertToKRW(item.amount, item.currency).toLocaleString()} KRW</div>
                       </div>
                     </div>
                   ))}
@@ -482,9 +557,9 @@ export default function ExpensePage() {
             </div>
 
             <div className="modal-footer">
-              <button className="btn-cancel" onClick={() => setShowOcrModal(false)}>Cancel</button>
+              <button className="cancel-btn" onClick={() => setShowOcrModal(false)}>Cancel</button>
               <button 
-                className="btn-save" 
+                className="add-btn"
                 onClick={handleSaveOcrItems}
                 disabled={ocrLoading || ocrItems.filter(i => i.selected).length === 0}
               >
