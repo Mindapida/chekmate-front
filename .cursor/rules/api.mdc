@@ -1,0 +1,1735 @@
+---
+alwaysApply: false
+---
+# Checkmate API Documentation for Frontend Team
+
+> **Version:** 1.0.0  
+> **Last Updated:** 2025-11-20  
+> **Base URL:** `[YOUR_BACKEND_URL]` (e.g., `http://localhost:8000` for development or `https://api.checkmate.com` for production)
+
+---
+
+## Table of Contents
+
+1. [Getting Started](#getting-started)
+2. [Authentication](#authentication)
+3. [API Endpoints](#api-endpoints)
+   - [Authentication](#1-authentication)
+   - [Users](#2-users)
+   - [Trips](#3-trips)
+   - [Expenses](#4-expenses)
+   - [Diary](#5-diary)
+   - [Calendar](#6-calendar)
+   - [Budget](#7-budget)
+   - [Settlement](#8-settlement)
+   - [FX Rates](#9-fx-rates)
+   - [OCR](#10-ocr)
+   - [Feed](#11-feed)
+4. [Error Codes](#error-codes)
+5. [Environment Variables](#environment-variables)
+6. [Data Models](#data-models)
+
+---
+
+## Getting Started
+
+### Base URL Configuration
+
+Set your API base URL in your frontend environment:
+
+```env
+REACT_APP_API_URL=http://localhost:8000/api  # Development
+# or
+REACT_APP_API_URL=https://api.checkmate.com/api  # Production
+```
+
+### Request Headers
+
+All authenticated requests require:
+
+```
+Authorization: Bearer {access_token}
+Content-Type: application/json
+```
+
+For file uploads, use `multipart/form-data`:
+
+```
+Authorization: Bearer {access_token}
+Content-Type: multipart/form-data
+```
+
+### Date Format
+
+All dates should be in ISO 8601 format: `YYYY-MM-DD` (e.g., `2024-07-05`)
+
+### Currency Codes
+
+Supported currencies: `KRW`, `USD`, `EUR`, `JPY`, `CNY`, `AUD`, `GBP`
+
+---
+
+## Authentication
+
+### Authentication Flow
+
+1. User signs up or logs in
+2. Backend returns JWT token (`access_token`)
+3. Store token in localStorage/sessionStorage or secure cookie
+4. Include token in `Authorization` header for all subsequent requests
+5. Token expires after 7 days (default, configurable on backend)
+
+### Token Storage
+
+**Recommended approach:**
+
+```javascript
+// Store token after login
+localStorage.setItem('access_token', response.access_token);
+
+// Include in requests
+const token = localStorage.getItem('access_token');
+fetch(`${API_URL}/trips`, {
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  }
+});
+```
+
+---
+
+## API Endpoints
+
+### 1. Authentication
+
+#### Sign Up
+```http
+POST /api/auth/signup
+```
+
+**Request:**
+```json
+{
+  "username": "testuser",
+  "email": "test@example.com",
+  "password": "testpassword123"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "id": 1,
+  "username": "testuser",
+  "email": "test@example.com",
+  "is_active": true,
+  "created_at": "2025-11-20T10:00:00"
+}
+```
+
+**Errors:**
+- `400`: Username or email already exists
+- `422`: Validation error (invalid email format, password too short, etc.)
+
+---
+
+#### Login
+```http
+POST /api/auth/login
+```
+
+**Request:**
+```json
+{
+  "username": "testuser",
+  "password": "testpassword123"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
+
+**Errors:**
+- `401`: Incorrect username or password
+- `403`: User account is inactive
+
+---
+
+#### Logout
+```http
+POST /api/auth/logout?token={access_token}
+```
+
+**Note:** This endpoint is mainly for server-side logging. Frontend should remove the token from storage.
+
+**Response (200 OK):**
+```json
+{
+  "message": "Logged out successfully"
+}
+```
+
+---
+
+### 2. Users
+
+#### Get Current User
+```http
+GET /api/users/me
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": 1,
+  "username": "testuser",
+  "email": "test@example.com",
+  "is_active": true,
+  "created_at": "2025-11-20T10:00:00"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Get User by ID
+```http
+GET /api/users/{user_id}
+```
+
+**Response (200 OK):** Same as above
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+### 3. Trips
+
+#### Create Trip
+```http
+POST /api/trips
+```
+
+**Request:**
+```json
+{
+  "name": "Summer Vacation 2024",
+  "start_date": "2024-07-01",
+  "end_date": "2024-07-15"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "id": 1,
+  "name": "Summer Vacation 2024",
+  "start_date": "2024-07-01",
+  "end_date": "2024-07-15",
+  "status": "upcoming",
+  "is_settled": false,
+  "created_at": "2025-11-20T10:00:00",
+  "updated_at": "2025-11-20T10:00:00"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### List Trips
+```http
+GET /api/trips
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "name": "Summer Vacation 2024",
+    "start_date": "2024-07-01",
+    "end_date": "2024-07-15",
+    "status": "upcoming",
+    "is_settled": false,
+    "created_at": "2025-11-20T10:00:00",
+    "updated_at": "2025-11-20T10:00:00"
+  }
+]
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Get Trip Details
+```http
+GET /api/trips/{trip_id}
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": 1,
+  "name": "Summer Vacation 2024",
+  "start_date": "2024-07-01",
+  "end_date": "2024-07-15",
+  "status": "upcoming",
+  "is_settled": false,
+  "participants": [
+    {
+      "id": 1,
+      "username": "testuser",
+      "is_creator": true,
+      "has_settled": false
+    }
+  ],
+  "created_at": "2025-11-20T10:00:00",
+  "updated_at": "2025-11-20T10:00:00"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Update Trip
+```http
+PUT /api/trips/{trip_id}
+```
+
+**Request (all fields optional):**
+```json
+{
+  "name": "Updated Trip Name",
+  "start_date": "2024-07-05",
+  "end_date": "2024-07-20"
+}
+```
+
+**Response (200 OK):** Updated trip object
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Delete Trip
+```http
+DELETE /api/trips/{trip_id}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Trip deleted successfully"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Invite Participant
+```http
+POST /api/trips/{trip_id}/participants
+```
+
+**Request:**
+```json
+{
+  "username": "anotheruser"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Participant invited successfully"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Get Trip Status
+```http
+GET /api/trips/{trip_id}/status
+```
+
+**Response (200 OK):**
+```json
+{
+  "trip_id": 1,
+  "status": "upcoming",
+  "current_date": "2025-11-20",
+  "start_date": "2024-07-01",
+  "end_date": "2024-07-15"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Set Current Trip
+```http
+POST /api/trips/{trip_id}/set_current
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Trip set as current"
+}
+```
+
+**Note:** This endpoint is for client-side implementation to mark a trip as the current/active trip.
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Press Settlement Button
+```http
+POST /api/trips/{trip_id}/settle
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Settlement triggered"
+}
+```
+
+**Note:** 
+- Marks the current user as having pressed the settlement button for this trip.
+- If all participants have pressed the settlement button, settlement calculation is automatically triggered.
+- This updates the participant's `has_settled` flag to `true`.
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Get Settlement Result
+```http
+GET /api/trips/{trip_id}/settlement
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": 1,
+  "trip_id": 1,
+  "calculation_data": {
+    "net_balances": {
+      "user1": 50000.00,
+      "user2": -50000.00
+    },
+    "transfers": [
+      {
+        "from_user_id": 2,
+        "from_username": "user2",
+        "to_user_id": 1,
+        "to_username": "user1",
+        "amount_base": 50000.00
+      }
+    ],
+    "total_expenses_base": 200000.00,
+    "participant_count": 2
+  },
+  "summary": "user2 should pay user1 50000.00",
+  "created_at": "2025-11-20T10:00:00"
+}
+```
+
+**Errors:**
+- `404`: Settlement not found (no settlement has been calculated yet)
+
+**Note:** Returns the latest settlement result for the trip. Settlement is calculated automatically when all participants press the settlement button.
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Get Participant List
+```http
+GET /api/trips/{trip_id}/participants
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "username": "testuser",
+    "is_creator": true,
+    "has_settled": false
+  },
+  {
+    "id": 2,
+    "username": "anotheruser",
+    "is_creator": false,
+    "has_settled": true
+  }
+]
+```
+
+**Note:** Returns list of all participants with their settlement status (`has_settled` flag).
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+### 4. Expenses
+
+#### Get Expenses by Date
+```http
+GET /api/expenses/{trip_id}/{date}
+```
+
+**Example:** `GET /api/expenses/1/2024-07-05`
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": 55,
+    "trip_id": 1,
+    "payer_id": 1,
+    "payer_username": "testuser",
+    "date": "2024-07-05",
+    "amount": 50000.00,
+    "currency": "KRW",
+    "amount_krw": 50000.00,
+    "description": "Lunch at restaurant",
+    "category": "food",
+    "display_order": 1,
+    "participants": [
+      {
+        "user_id": 1,
+        "username": "testuser",
+        "share_amount_krw": 25000
+      },
+      {
+        "user_id": 2,
+        "username": "anotheruser",
+        "share_amount_krw": 25000
+      }
+    ],
+    "created_at": "2025-11-20T10:00:00",
+    "updated_at": "2025-11-20T10:00:00"
+  }
+]
+```
+
+**Note:** Expenses are ordered by `display_order` ASC, then `id` ASC.
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Create Expense (Manual)
+```http
+POST /api/expenses/{trip_id}/{date}
+```
+
+**Request:**
+```json
+{
+  "amount": 50000.00,
+  "currency": "KRW",
+  "description": "Lunch at restaurant",
+  "category": "food",
+  "participant_ids": [1, 2]
+}
+```
+
+**Response (201 Created):** Expense object (same format as GET)
+
+**Auth Required:** ✅ Bearer Token
+
+**Note:** 
+- Category is automatically classified if not provided (using OpenAI API).
+- Categories are always stored in lowercase (e.g., "food", "transportation").
+- Share amounts (`share_amount_krw`) are rounded to integers.
+
+---
+
+#### Update Expense
+```http
+PUT /api/expenses/{expense_id}
+```
+
+**Request (all fields optional):**
+```json
+{
+  "amount": 60000.00,
+  "currency": "USD",
+  "description": "Updated description",
+  "category": "transportation",
+  "participant_ids": [1, 2, 3]
+}
+```
+
+**Response (200 OK):** Updated expense object
+
+**Auth Required:** ✅ Bearer Token
+
+**Note:** 
+- When `amount` or `currency` changes, `amount_krw` is automatically recalculated.
+- Categories are always stored in lowercase.
+- When `participant_ids` changes, share amounts are recalculated and rounded to integers.
+
+---
+
+#### Delete Expense
+```http
+DELETE /api/expenses/{expense_id}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Expense deleted successfully"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Reorder Expenses
+```http
+PUT /api/expenses/{trip_id}/{date}/reorder
+```
+
+**Request:**
+```json
+[55, 56, 57]  // Array of expense IDs in desired order
+```
+
+**Response (200 OK):** Array of expenses in new order
+
+**Auth Required:** ✅ Bearer Token
+
+**Note:** `display_order` is automatically updated (1, 2, 3, ...).
+
+---
+
+#### Upload Expense via OCR (Preview)
+```http
+POST /api/expenses/{trip_id}/{date}/ocr
+```
+
+**Request:** `multipart/form-data`
+- `file`: Image file (JPEG, PNG)
+
+**Response (200 OK):**
+```json
+[
+  {
+    "amount": 22.73,
+    "currency": "AUD",
+    "description": "SUSHI N co PTY LTD",
+    "date": null
+  },
+  {
+    "amount": 14.30,
+    "currency": "AUD",
+    "description": "MAOJUN PTY LTD",
+    "date": null
+  }
+]
+```
+
+**Note:** Returns preview array. Does not create expenses. Date should come from URL parameter.
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Upload Expense via OCR and Create
+```http
+POST /api/expenses/{trip_id}/{date}/ocr/create
+```
+
+**Request:** `multipart/form-data`
+- `file`: Image file (JPEG, PNG)
+- `participant_ids`: (optional) Comma-separated string, e.g., `"1,2,3"`
+
+**Response (201 Created):**
+```json
+[
+  {
+    "id": 55,
+    "trip_id": 1,
+    "payer_id": 1,
+    "payer_username": "testuser",
+    "date": "2024-07-05",
+    "amount": 22.73,
+    "currency": "AUD",
+    "amount_krw": 23000.00,
+    "description": "SUSHI N co PTY LTD",
+    "category": "food",
+    "display_order": 1,
+    "participants": [...],
+    "created_at": "2025-11-20T10:00:00",
+    "updated_at": "2025-11-20T10:00:00"
+  }
+]
+```
+
+**Note:**
+- Creates multiple expenses if image contains multiple payment records
+- Date is always from URL parameter (not parsed from OCR)
+- Expenses are ordered from top to bottom (top item gets smaller `display_order`)
+- Category is automatically classified
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+### 5. Diary
+
+Diary entries support both **expense-linked** and **date-based** entries:
+
+- **Expense-linked**: 1 photo + 1 memo per expense (indexed by `expense_id`)
+- **Date-based**: Up to 10 photos + 1 memo per user/date (indexed by `trip_id` + `date`)
+
+---
+
+#### 5.1 Expense-Linked Diary
+
+##### Upload Photo for Expense
+```http
+POST /api/diary/expenses/{expense_id}/photos
+```
+
+**Request:** `multipart/form-data`
+- `file`: Image file (one photo per expense, uploading again replaces existing)
+- `memo`: (optional) Memo text
+
+**Response (201 Created):**
+```json
+{
+  "id": 5,
+  "trip_id": 1,
+  "user_id": 1,
+  "username": "testuser",
+  "date": "2024-07-05",
+  "expense_id": 55,
+  "memo": "Receipt photo",
+  "photos": [
+    {
+      "id": 3,
+      "file_path": "app/static/...",
+      "file_name": "receipt.jpg",
+      "memo": null,
+      "order_index": 0,
+      "created_at": "2025-11-20T14:56:28"
+    }
+  ],
+  "created_at": "2025-11-20T14:56:28",
+  "updated_at": "2025-11-20T14:56:28"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+##### Get Diary Entry for Expense
+```http
+GET /api/diary/expenses/{expense_id}
+```
+
+**Response (200 OK):** Same format as above
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+##### Add/Update Memo for Expense
+```http
+POST /api/diary/expenses/{expense_id}/memo
+PUT /api/diary/expenses/{expense_id}/memo
+```
+
+**Request:**
+```json
+{
+  "memo": "Receipt saved, paid with credit card"
+}
+```
+
+**Response (201/200 OK):** Diary entry with updated memo
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+##### Delete Photo for Expense
+```http
+DELETE /api/diary/expenses/{expense_id}/photos
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Expense photo deleted successfully"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+##### Delete Memo for Expense
+```http
+DELETE /api/diary/expenses/{expense_id}/memo
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Expense memo deleted successfully"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### 5.2 Date-Based Diary
+
+##### Upload Photos
+```http
+POST /api/diary/{trip_id}/{date}/photos
+```
+
+**Request:** `multipart/form-data`
+- `files`: Multiple image files (max 10 per user/date)
+- `memo`: (optional) Memo text
+
+**Response (201 Created):**
+```json
+[
+  {
+    "id": 8,
+    "file_path": "app/static/...",
+    "file_name": "photo1.jpg",
+    "memo": null,
+    "order_index": 0,
+    "created_at": "2025-11-20T15:35:38"
+  },
+  {
+    "id": 9,
+    "file_path": "app/static/...",
+    "file_name": "photo2.jpg",
+    "memo": null,
+    "order_index": 1,
+    "created_at": "2025-11-20T15:35:40"
+  }
+]
+```
+
+**Auth Required:** ✅ Bearer Token
+
+**Note:** Maximum 10 photos per user per date.
+
+---
+
+##### Get Diary Entry (All entries for date)
+```http
+GET /api/diary/{trip_id}/{date}
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": 3,
+    "trip_id": 1,
+    "user_id": 1,
+    "username": "testuser",
+    "date": "2024-07-05",
+    "expense_id": null,
+    "memo": "Had a wonderful day!",
+    "photos": [
+      {
+        "id": 8,
+        "file_path": "app/static/...",
+        "file_name": "photo1.jpg",
+        "memo": null,
+        "order_index": 0,
+        "created_at": "2025-11-20T15:35:38"
+      }
+    ],
+    "created_at": "2025-11-18T13:08:55",
+    "updated_at": "2025-11-20T16:06:48"
+  }
+]
+```
+
+**Note:** Returns all diary entries for the date, including both expense-linked and date-based entries. Expense-linked entries appear first.
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+##### Add/Update Daily Memo
+```http
+POST /api/diary/{trip_id}/{date}/memo
+PUT /api/diary/{trip_id}/{date}/memo
+```
+
+**Request:**
+```json
+{
+  "memo": "Had a wonderful day exploring the city!"
+}
+```
+
+**Response (201/200 OK):** Diary entry with memo
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+##### Delete Daily Memo
+```http
+DELETE /api/diary/{trip_id}/{date}/memo
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Memo deleted successfully"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+##### Update Photo (Metadata)
+```http
+PUT /api/diary/{trip_id}/{date}/photos/{photo_id}
+```
+
+**Request:**
+```json
+{}  // Currently no updatable fields (memo is at DiaryEntry level)
+```
+
+**Response (200 OK):** Photo object
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+##### Delete Daily Photo
+```http
+DELETE /api/diary/{trip_id}/{date}/photos/{photo_id}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Photo deleted successfully"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+### 6. Calendar
+
+#### Get Daily Indicators
+```http
+GET /api/calendar/{trip_id}/days
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "date": "2024-07-05",
+    "has_expense": true,
+    "has_diary": true,
+    "has_mood": false
+  }
+]
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Get Daily Data
+```http
+GET /api/calendar/{trip_id}/{date}
+```
+
+**Response (200 OK):**
+```json
+{
+  "date": "2024-07-05",
+  "expenses": [
+    {
+      "id": 55,
+      "trip_id": 1,
+      "payer_id": 1,
+      "payer_username": "testuser",
+      "date": "2024-07-05",
+      "amount": 50000.00,
+      "currency": "KRW",
+      "amount_krw": 50000.00,
+      "description": "Lunch",
+      "category": "food",
+      "display_order": 1,
+      "participants": [...],
+      "created_at": "2025-11-20T10:00:00",
+      "updated_at": "2025-11-20T10:00:00"
+    }
+  ],
+  "diary_entries": [
+    {
+      "id": 3,
+      "trip_id": 1,
+      "user_id": 1,
+      "username": "testuser",
+      "date": "2024-07-05",
+      "expense_id": null,
+      "memo": "Great day!",
+      "photos": [...],
+      "created_at": "2025-11-18T13:08:55",
+      "updated_at": "2025-11-20T16:06:48"
+    }
+  ],
+  "moods": [
+    {
+      "id": 1,
+      "trip_id": 1,
+      "user_id": 1,
+      "username": "testuser",
+      "date": "2024-07-05",
+      "mood_emoji": "😊",
+      "created_at": "2025-11-20T10:00:00",
+      "updated_at": "2025-11-20T10:00:00"
+    }
+  ]
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Set Mood
+```http
+POST /api/calendar/{trip_id}/{date}/mood
+```
+
+**Request:**
+```json
+{
+  "mood_emoji": "😊"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "id": 1,
+  "trip_id": 1,
+  "user_id": 1,
+  "username": "testuser",
+  "date": "2024-07-05",
+  "mood_emoji": "😊",
+  "created_at": "2025-11-20T10:00:00",
+  "updated_at": "2025-11-20T10:00:00"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+### 7. Budget
+
+#### Set Budget
+```http
+POST /api/budget/{trip_id}
+```
+
+**Request:**
+```json
+{
+  "budget_amount_base": 1000000
+}
+```
+
+**Response (201 Created):** Budget object
+
+**Note:** Budget amount should be in the trip's base currency (e.g., if trip base currency is "KRW", use KRW amount).
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Get Budget
+```http
+GET /api/budget/{trip_id}
+```
+
+**Response (200 OK):**
+```json
+{
+  "trip_id": 1,
+  "budget_amount_base": 1000000.00,
+  "base_currency": "KRW",
+  "created_at": "2025-11-20T10:00:00",
+  "updated_at": "2025-11-20T10:00:00"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Get Budget Summary
+```http
+GET /api/budget/{trip_id}/summary
+```
+
+**Response (200 OK):**
+```json
+{
+  "trip_id": 1,
+  "budget_amount_base": 1000000.00,
+  "total_spent_base": 500000.00,
+  "remaining_base": 500000.00,
+  "fill_ratio": 50.0,
+  "base_currency": "KRW",
+  "categories": [
+    {
+      "category": "food",
+      "spent_amount_base": 200000.00,
+      "expense_count": 15,
+      "percentage_of_total": 40.0,
+      "percentage_of_budget": 20.0
+    },
+    {
+      "category": "transportation",
+      "spent_amount_base": 150000.00,
+      "expense_count": 8,
+      "percentage_of_total": 30.0,
+      "percentage_of_budget": 15.0
+    }
+  ],
+  "uncategorized_spent_base": 50000.00,
+  "uncategorized_count": 2
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+**Note:** 
+- Returns category-wise spending breakdown for the current user's budget.
+- Categories are always lowercase.
+- `spent_amount_base` shows how much the user spent in each category.
+- `percentage_of_total` shows what percentage of total spending each category represents.
+- `percentage_of_budget` shows what percentage of the budget each category represents.
+
+---
+
+### 8. Settlement
+
+#### Trigger Settlement
+```http
+POST /api/settlement/{trip_id}/trigger
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Settlement calculation triggered",
+  "settlement_id": 1
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Get Settlement Result
+```http
+GET /api/settlement/{trip_id}/result
+```
+
+**Response (200 OK):**
+```json
+{
+  "trip_id": 1,
+  "settlements": [
+    {
+      "from_user_id": 1,
+      "from_username": "user1",
+      "to_user_id": 2,
+      "to_username": "user2",
+      "amount_krw": 50000.00
+    }
+  ],
+  "created_at": "2025-11-20T10:00:00"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+### 9. FX Rates
+
+#### Get Exchange Rate for Date
+```http
+GET /api/fx-rates/{date}?currency=USD&trip_id={trip_id}
+```
+
+**Query Parameters:**
+- `currency`: Currency code (default: `USD`)
+- `trip_id`: Trip ID (required)
+- `force_refresh`: (optional) `true` to fetch fresh rate from API
+
+**Response (200 OK):**
+```json
+{
+  "id": 1,
+  "trip_id": 1,
+  "date": "2024-07-05",
+  "currency": "USD",
+  "rate_to_krw": 1300.00,
+  "created_at": "2025-11-20T10:00:00"
+}
+```
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Get Latest Exchange Rate (Today)
+```http
+GET /api/fx-rates/latest?currency=USD&trip_id={trip_id}
+```
+
+**Query Parameters:**
+- `currency`: Currency code (default: `USD`)
+- `trip_id`: Trip ID (required)
+- `force_refresh`: (optional) `true` to fetch fresh rate from API
+
+**Response (200 OK):** Same format as above
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+### 10. OCR
+
+#### Parse Receipt Image
+```http
+POST /api/ocr/parse
+```
+
+**Request:** `multipart/form-data`
+- `file`: Image file
+
+**Response (200 OK):**
+```json
+[
+  {
+    "amount": 22.73,
+    "currency": "AUD",
+    "description": "SUSHI N co PTY LTD",
+    "date": null
+  }
+]
+```
+
+**Auth Required:** ✅ Bearer Token
+
+**Note:** This is a standalone OCR parsing endpoint. For expense creation, use `/api/expenses/{trip_id}/{date}/ocr/create`.
+
+---
+
+### 11. Feed
+
+#### Get Photo Feed
+```http
+GET /api/trips/{trip_id}/feed?offset=0&limit=10
+```
+
+**Query Parameters:**
+- `offset`: (optional) Pagination offset (default: 0)
+- `limit`: (optional) Number of photos per page (default: 10)
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": 8,
+    "file_path": "app/static/...",
+    "file_name": "photo1.jpg",
+    "memo": null,
+    "order_index": 0,
+    "created_at": "2025-11-20T15:35:38"
+  }
+]
+```
+
+**Note:** Photos are ordered by creation date (latest first).
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+#### Get Photo Detail
+```http
+GET /api/photos/{photo_id}
+```
+
+**Response (200 OK):** Photo object
+
+**Auth Required:** ✅ Bearer Token
+
+---
+
+## Error Codes
+
+### HTTP Status Codes
+
+- **200 OK**: Request successful
+- **201 Created**: Resource created successfully
+- **400 Bad Request**: Invalid request data
+- **401 Unauthorized**: Authentication required or invalid token
+- **403 Forbidden**: User doesn't have access to resource
+- **404 Not Found**: Resource not found
+- **422 Unprocessable Entity**: Validation error
+- **500 Internal Server Error**: Server error
+- **503 Service Unavailable**: External service unavailable (e.g., FX API)
+
+### Error Response Format
+
+```json
+{
+  "detail": "Error message description"
+}
+```
+
+**Examples:**
+
+```json
+{
+  "detail": "Expense not found"
+}
+```
+
+```json
+{
+  "detail": "Invalid authentication credentials"
+}
+```
+
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "amount"],
+      "msg": "value is not a valid decimal",
+      "type": "type_error.decimal"
+    }
+  ]
+}
+```
+
+---
+
+## Environment Variables
+
+### Required for Frontend
+
+```env
+# API Configuration
+REACT_APP_API_URL=http://localhost:8000/api  # [YOUR_BACKEND_URL]/api
+# or for production:
+# REACT_APP_API_URL=https://api.checkmate.com/api
+```
+
+### Backend Configuration (For Reference)
+
+The following environment variables are configured on the backend. Frontend team doesn't need to set these, but they're listed for reference:
+
+```env
+# Database
+DATABASE_URL=mysql+pymysql://user:password@mysql:3306/checkmate
+
+# JWT
+SECRET_KEY=your-secret-key
+ACCESS_TOKEN_EXPIRE_DAYS=7
+
+# CORS (Backend will allow these origins)
+CORS_ORIGINS=http://localhost:3000,http://localhost:8080  # Add your frontend URLs
+
+# FX Rates
+FX_API_KEY=[YOUR_EXCHANGERATE_API_KEY]
+
+# OCR
+OCR_PROVIDER=openai_vision  # Options: ocrspace, google_vision, naver_clova, openai_vision
+OPENAI_API_KEY=[YOUR_OPENAI_API_KEY]
+NAVER_CLOVA_API_URL=[YOUR_NAVER_CLOVA_API_URL]
+NAVER_CLOVA_SECRET_KEY=[YOUR_NAVER_CLOVA_SECRET_KEY]
+
+# File Upload
+MAX_UPLOAD_SIZE=10485760  # 10MB
+```
+
+---
+
+## Data Models
+
+### User
+
+```typescript
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;  // ISO 8601 datetime
+}
+```
+
+### Trip
+
+```typescript
+interface Trip {
+  id: number;
+  name: string;
+  start_date: string;  // YYYY-MM-DD
+  end_date: string;    // YYYY-MM-DD
+  status: "upcoming" | "ongoing" | "finished";
+  is_settled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TripDetail extends Trip {
+  participants: TripParticipant[];
+}
+
+interface TripParticipant {
+  id: number;
+  username: string;
+  is_creator: boolean;
+  has_settled: boolean;
+}
+```
+
+### Expense
+
+```typescript
+interface Expense {
+  id: number;
+  trip_id: number;
+  payer_id: number;
+  payer_username: string;
+  date: string;  // YYYY-MM-DD
+  amount: number;
+  currency: string;  // KRW, USD, EUR, JPY, CNY, AUD, GBP
+  amount_krw: number;  // Normalized to KRW
+  description: string | null;
+  category: string | null;  // Always lowercase: food, transportation, accommodation, shopping, entertainment, ticket, souvenir, drink, health, communication, other
+  display_order: number;  // Order within same date (1, 2, 3, ...)
+  participants: ExpenseParticipant[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface ExpenseParticipant {
+  user_id: number;
+  username: string;
+  share_amount_krw: number;  // Rounded to integer
+}
+
+interface OCRExpensePreview {
+  amount: number;
+  currency: string;
+  description: string | null;
+  date: null;  // Always null - use date from URL
+}
+```
+
+### Diary
+
+```typescript
+interface DiaryEntry {
+  id: number;
+  trip_id: number;
+  user_id: number;
+  username: string;
+  date: string;  // YYYY-MM-DD
+  expense_id: number | null;  // null for date-based entries
+  memo: string | null;
+  photos: DiaryPhoto[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface DiaryPhoto {
+  id: number;
+  file_path: string;  // Server path - construct full URL with base URL
+  file_name: string;
+  memo: null;  // Always null - memo is at DiaryEntry level
+  order_index: number;
+  created_at: string;
+}
+```
+
+**Note:** To display photos, construct full URL:
+```
+http://[YOUR_BACKEND_URL]/[file_path]
+```
+
+For example, if `file_path` is `app/static/abc123.jpg`, the full URL would be:
+```
+http://localhost:8000/app/static/abc123.jpg
+```
+
+### Calendar
+
+```typescript
+interface DailyIndicator {
+  date: string;  // YYYY-MM-DD
+  has_expense: boolean;
+  has_diary: boolean;
+  has_mood: boolean;
+}
+
+interface DailyData {
+  date: string;
+  expenses: Expense[];
+  diary_entries: DiaryEntry[];
+  moods: Mood[];
+}
+
+interface Mood {
+  id: number;
+  trip_id: number;
+  user_id: number;
+  username: string;
+  date: string;
+  mood_emoji: string;
+  created_at: string;
+  updated_at: string;
+}
+```
+
+### Budget
+
+```typescript
+interface Budget {
+  trip_id: number;
+  budget_amount_base: number;  // Budget amount in trip's base currency
+  base_currency: string;  // Trip's base currency (e.g., "KRW", "USD")
+  created_at: string;
+  updated_at: string;
+}
+
+interface BudgetSummary {
+  trip_id: number;
+  budget_amount_base: number;  // Budget amount in trip's base currency
+  total_spent_base: number;  // Total spent in trip's base currency
+  remaining_base: number;  // Remaining in trip's base currency
+  fill_ratio: number;  // Percentage of budget used (0-100)
+  base_currency: string;  // Trip's base currency (e.g., "KRW", "USD")
+  categories: BudgetCategoryItem[];  // Category-wise spending breakdown
+  uncategorized_spent_base: number;  // Amount spent without category
+  uncategorized_count: number;  // Number of expenses without category
+}
+
+interface BudgetCategoryItem {
+  category: string;  // Always lowercase (e.g., "food", "transportation")
+  spent_amount_base: number;  // Amount spent in this category
+  expense_count: number;  // Number of expenses in this category
+  percentage_of_total: number;  // Percentage of total spending (0-100)
+  percentage_of_budget: number;  // Percentage of budget (0-100)
+}
+```
+
+### Settlement
+
+```typescript
+interface Settlement {
+  trip_id: number;
+  settlements: SettlementItem[];
+  created_at: string;
+}
+
+interface SettlementItem {
+  from_user_id: number;
+  from_username: string;
+  to_user_id: number;
+  to_username: string;
+  amount_krw: number;
+}
+```
+
+### FX Rate
+
+```typescript
+interface ExchangeRate {
+  id: number;
+  trip_id: number;
+  date: string;  // YYYY-MM-DD
+  currency: string;
+  rate_to_krw: number;  // Rate from currency to KRW
+  created_at: string;
+}
+```
+
+---
+
+## Common Patterns
+
+### File Upload with FormData
+
+```javascript
+const formData = new FormData();
+formData.append('file', fileInput.files[0]);
+formData.append('memo', 'Optional memo text');
+
+const response = await fetch(`${API_URL}/diary/expenses/55/photos`, {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`
+    // Don't set Content-Type - browser will set it with boundary
+  },
+  body: formData
+});
+```
+
+### Multiple Files Upload
+
+```javascript
+const formData = new FormData();
+for (let file of fileInput.files) {
+  formData.append('files', file);
+}
+formData.append('memo', 'Optional memo');
+
+const response = await fetch(`${API_URL}/diary/1/2024-07-05/photos`, {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  },
+  body: formData
+});
+```
+
+### Handling Errors
+
+```javascript
+try {
+  const response = await fetch(`${API_URL}/trips`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    if (response.status === 401) {
+      // Token expired or invalid - redirect to login
+      localStorage.removeItem('access_token');
+      window.location.href = '/login';
+    } else {
+      throw new Error(error.detail || 'Request failed');
+    }
+  }
+  
+  const data = await response.json();
+  return data;
+} catch (error) {
+  console.error('API Error:', error);
+  throw error;
+}
+```
+
+### Token Refresh Strategy
+
+Currently, tokens expire after 7 days. Frontend should:
+
+1. Check if token is expired before making requests
+2. Redirect to login if token is expired
+3. Optionally implement refresh token flow if backend supports it (currently not implemented)
+
+---
+
+## Notes for Frontend Team
+
+### Important Points
+
+1. **Date Parameter**: Always use date from URL path, never from OCR result. OCR date field is always `null`.
+
+2. **Display Order**: Expenses are ordered by `display_order` ASC (1, 2, 3, ...). Smaller number = appears first (top).
+
+3. **Photo URLs**: Construct full URLs by prepending backend base URL to `file_path`.
+
+4. **Diary Entry Types**:
+   - Expense-linked: `expense_id` is not null
+   - Date-based: `expense_id` is null
+
+5. **Currency Conversion**: All amounts are normalized to KRW (`amount_krw`). Use this for calculations.
+
+6. **Categories**: Predefined categories are: `food`, `transportation`, `accommodation`, `shopping`, `entertainment`, `ticket`, `souvenir`, `drink`, `health`, `communication`, `other`. Categories are always stored in lowercase. Category is automatically classified if not provided.
+
+7. **Share Amounts**: Share amounts (`share_amount_krw` in participants) are calculated by dividing the total amount by the number of participants and rounded to the nearest integer. For example, if 1000 is split between 3 participants, each gets 333 (not 333.33).
+
+8. **File Size Limit**: Maximum 10MB per file.
+
+9. **Photo Limits**: 
+   - Expense-linked: 1 photo per expense
+   - Date-based: Maximum 10 photos per user per date
+
+10. **Duplicate Diary Entries**: GET endpoint automatically merges duplicate date-based entries (legacy data cleanup).
+
+---
+
+## Contact
+
+For API-related questions or issues:
+- **Backend Team Contact:** [YOUR_BACKEND_TEAM_CONTACT]
+- **API Documentation:** Swagger UI is available at `http://localhost:8000/docs` (when server is running)
+
+---
+
+## Changelog
+
+### Version 1.0.0 (2025-11-20)
+- Initial API documentation
+- All CRUD operations for trips, expenses, diary
+- OCR integration
+- FX rates integration
+- Budget and settlement features
+
+
+api 연동할 때 위에 내용 참고해
