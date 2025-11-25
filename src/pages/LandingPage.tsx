@@ -1,6 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import './LandingPage.css';
 
+// Figma 비행기 창문 이미지
+const imgAirplaneWindow = "https://www.figma.com/api/mcp/asset/460365c9-662c-4e42-8651-9ff270d1d803";
+
 export default function LandingPage() {
   const navigate = useNavigate();
 
@@ -26,24 +29,9 @@ export default function LandingPage() {
           <span className="logo-text">CHECKMATE</span>
         </div>
 
-        {/* 3D 비행기 창문 */}
-        <div className="airplane-window-container">
-          <div className="window-frame">
-            <div className="window-view">
-              <div className="sky">
-                <div className="cloud-layer">
-                  <span className="cloud c1">☁️</span>
-                  <span className="cloud c2">☁️</span>
-                  <span className="cloud c3">⛅</span>
-                  <span className="cloud c4">☁️</span>
-                  <span className="cloud c5">🌤️</span>
-                  <span className="cloud c6">☁️</span>
-                </div>
-              </div>
-            </div>
-            <div className="window-shine"></div>
-          </div>
-          <div className="window-shadow"></div>
+        {/* 비행기 창문 이미지 */}
+        <div className="airplane-image">
+          <img src={imgAirplaneWindow} alt="Airplane Window" />
         </div>
 
         {/* 버튼 그룹 */}
