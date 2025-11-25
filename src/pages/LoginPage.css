@@ -1,0 +1,80 @@
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(115deg, rgba(239,246,255,1) 0%, rgba(253,242,248,1) 50%, rgba(254,252,232,1) 100%);
+  font-family: 'Quicksand', sans-serif;
+}
+
+.login-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  height: 68px;
+}
+
+.back-button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.back-button:hover { background-color: rgba(43,127,255,0.1); }
+
+.header-logo { display: flex; align-items: center; gap: 8px; }
+.header-logo .logo-check { font-size: 20px; font-weight: 600; color: #2b7fff; }
+.header-logo .logo-text { font-size: 20px; font-weight: 600; color: #2b7fff; }
+
+.login-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0 24px;
+  margin-top: 200px;
+  max-width: 393px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.login-welcome { text-align: center; }
+.login-welcome h1 { font-size: 24px; font-weight: 700; color: #171717; margin: 0 0 8px 0; }
+.login-welcome p { font-size: 14px; font-weight: 600; color: #737373; margin: 0; }
+
+.login-form { display: flex; flex-direction: column; gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-group label { font-size: 14px; font-weight: 600; color: #404040; }
+.form-group input {
+  height: 52px;
+  padding: 12px 16px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0a0a0a;
+  background: white;
+  border: 2px solid #e5e5e5;
+  border-radius: 16px;
+  outline: none;
+}
+.form-group input:focus { border-color: #2b7fff; }
+.form-group input::placeholder { color: #a3a3a3; }
+
+.login-form .btn-login {
+  height: 48px;
+  background: #2b7fff;
+  color: white;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  box-shadow: 0px 10px 15px -3px rgba(0,0,0,0.1);
+  margin-top: 8px;
+}
+.login-form .btn-login:hover { transform: translateY(-2px); }
+

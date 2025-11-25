@@ -1,0 +1,257 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap');
+
+.landing-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(115deg, rgba(239,246,255,1) 0%, rgba(253,242,248,1) 50%, rgba(254,252,232,1) 100%);
+  font-family: 'Quicksand', sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+.landing-page::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 20% 80%, rgba(43,127,255,0.08) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, rgba(251,100,182,0.08) 0%, transparent 50%);
+  animation: backgroundMove 20s ease-in-out infinite;
+  z-index: 0;
+}
+
+@keyframes backgroundMove {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(2%, 2%); }
+}
+
+.landing-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  max-width: 345px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.subtitle-badge {
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(10px);
+  border: 2px solid #8ec5ff;
+  border-radius: 9999px;
+  padding: 12px 24px;
+  animation: fadeInDown 0.8s ease-out;
+}
+
+.subtitle-badge span {
+  font-size: 14px;
+  font-weight: 600;
+  color: #155dfc;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+.logo-check {
+  font-size: 36px;
+  font-weight: 600;
+  color: #2b7fff;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.logo-text {
+  font-size: 32px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #2b7fff 0%, #155dfc 50%, #fb64b6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* 3D 비행기 창문 */
+.airplane-window-container {
+  position: relative;
+  width: 200px;
+  height: 260px;
+  margin: 20px 0;
+  perspective: 800px;
+  animation: fadeInUp 1s ease-out 0.4s both;
+}
+
+.window-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(145deg, #e8e8e8 0%, #d0d0d0 20%, #f5f5f5 40%, #c8c8c8 60%, #e0e0e0 80%, #d8d8d8 100%);
+  border-radius: 100px 100px 80px 80px;
+  padding: 12px;
+  box-shadow: inset 0 2px 10px rgba(255,255,255,0.8), inset 0 -2px 10px rgba(0,0,0,0.1), 0 10px 40px rgba(0,0,0,0.3), 0 0 0 3px #a0a0a0;
+  transform-style: preserve-3d;
+  animation: windowFloat 6s ease-in-out infinite;
+}
+
+.window-view {
+  width: 100%;
+  height: 100%;
+  border-radius: 90px 90px 70px 70px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.3);
+}
+
+.sky {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #1e3a5f 0%, #2d5a87 20%, #4a90c2 40%, #87ceeb 60%, #b0e0f0 80%, #d4f1f9 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.cloud-layer {
+  position: absolute;
+  width: 200%;
+  height: 100%;
+  animation: cloudsMove 20s linear infinite;
+}
+
+.cloud {
+  position: absolute;
+  filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.1));
+  opacity: 0.9;
+}
+
+.cloud.c1 { font-size: 50px; top: 15%; left: 10%; animation: cloudBob 4s ease-in-out infinite; }
+.cloud.c2 { font-size: 40px; top: 35%; left: 45%; animation: cloudBob 5s ease-in-out infinite 0.5s; }
+.cloud.c3 { font-size: 55px; top: 55%; left: 25%; animation: cloudBob 4.5s ease-in-out infinite 1s; }
+.cloud.c4 { font-size: 35px; top: 20%; left: 70%; animation: cloudBob 5.5s ease-in-out infinite 0.3s; }
+.cloud.c5 { font-size: 45px; top: 65%; left: 60%; animation: cloudBob 4s ease-in-out infinite 0.8s; }
+.cloud.c6 { font-size: 38px; top: 45%; left: 85%; animation: cloudBob 5s ease-in-out infinite 1.2s; }
+
+.window-shine {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  right: 50%;
+  height: 40%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+  border-radius: 80px 40px 100px 40px;
+  pointer-events: none;
+}
+
+.window-shadow {
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  height: 30px;
+  background: radial-gradient(ellipse, rgba(0,0,0,0.25) 0%, transparent 70%);
+  animation: shadowPulse 6s ease-in-out infinite;
+}
+
+@keyframes windowFloat {
+  0%, 100% { transform: rotateX(5deg) rotateY(0deg) translateY(0); }
+  25% { transform: rotateX(8deg) rotateY(3deg) translateY(-5px); }
+  50% { transform: rotateX(3deg) rotateY(0deg) translateY(-10px); }
+  75% { transform: rotateX(6deg) rotateY(-3deg) translateY(-5px); }
+}
+
+@keyframes cloudsMove {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes cloudBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes shadowPulse {
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; }
+  50% { transform: translateX(-50%) scale(0.85); opacity: 0.7; }
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  animation: fadeInUp 0.8s ease-out 0.6s both;
+}
+
+.btn-login {
+  width: 100%;
+  height: 52px;
+  background: linear-gradient(135deg, #2b7fff 0%, #155dfc 100%);
+  color: white;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  box-shadow: 0px 10px 25px -5px rgba(43,127,255,0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-login:hover {
+  transform: translateY(-3px);
+  box-shadow: 0px 15px 30px -5px rgba(43,127,255,0.5);
+}
+
+.btn-signup {
+  width: 100%;
+  height: 52px;
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(10px);
+  color: #404040;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  border: 2px solid #e5e5e5;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-signup:hover {
+  border-color: #2b7fff;
+  transform: translateY(-2px);
+}
+
+.tagline {
+  font-size: 16px;
+  font-weight: 600;
+  color: #525252;
+  text-align: center;
+  animation: fadeInUp 0.8s ease-out 0.8s both;
+}
+
