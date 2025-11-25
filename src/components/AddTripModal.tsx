@@ -124,6 +124,16 @@ export default function AddTripModal({ isOpen, onClose, onCreateTrip }: AddTripM
     return dateStr > startDate && dateStr < endDate;
   };
 
+  const isDateDisabled = (day: number | null) => {
+    if (day === null || day < 1) return true;
+    if (showCalendar !== 'end' || !startDate) return false;
+    const year = currentMonth.getFullYear();
+    const month = String(currentMonth.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(day).padStart(2, '0');
+    const dateStr = `${year}-${month}-${dayStr}`;
+    return dateStr < startDate;
+  };
+
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'];
   const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -197,6 +207,11 @@ export default function AddTripModal({ isOpen, onClose, onCreateTrip }: AddTripM
           {/* Calendar */}
           {showCalendar && (
             <div className="calendar-container animate-calendar">
+              <div className="calendar-selecting">
+                <span className={`selecting-indicator ${showCalendar}`}>
+                  {showCalendar === 'start' ? '📍 Select Start Date' : '🏁 Select End Date'}
+                </span>
+              </div>
               <div className="calendar-header">
                 <button className="calendar-nav" onClick={prevMonth}>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -219,9 +234,9 @@ export default function AddTripModal({ isOpen, onClose, onCreateTrip }: AddTripM
                 {getDaysInMonth(currentMonth).map((day, index) => (
                   <button
                     key={index}
-                    className={`calendar-day ${day === null || day < 1 ? 'empty' : ''} ${isDateSelected(day) ? 'selected' : ''} ${isDateInRange(day) ? 'in-range' : ''}`}
+                    className={`calendar-day ${day === null || day < 1 ? 'empty' : ''} ${isDateSelected(day) ? 'selected' : ''} ${isDateInRange(day) ? 'in-range' : ''} ${isDateDisabled(day) ? 'disabled' : ''}`}
                     onClick={() => handleDateSelect(day)}
-                    disabled={day === null || day < 1}
+                    disabled={isDateDisabled(day)}
                   >
                     {day !== null && day > 0 ? day : ''}
                   </button>
