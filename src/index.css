@@ -8,9 +8,10 @@
 
 html, body {
   width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   background: #1a1a2e;
+  overflow: hidden;
 }
 
 body {
@@ -23,12 +24,13 @@ body {
 
 #root {
   width: 100%;
-  max-width: 430px; /* iPhone 14 Pro Max width */
-  min-height: 100vh;
-  min-height: 100dvh;
+  max-width: 430px;
+  height: 100vh;
+  height: 100dvh;
   background: #fafafa;
   position: relative;
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
 }
 
 /* Mobile-first: On actual mobile devices, use full width */

@@ -1,11 +1,12 @@
 .expense-page {
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   background: #F9FAFB;
   font-family: 'Quicksand', sans-serif;
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
 }
 
 /* Header */

@@ -269,6 +269,10 @@ export default function PhotoMemoPage() {
                     <div className="expense-info">
                       <span className="expense-emoji">{getCategoryEmoji(expense.category)}</span>
                       <div className="expense-details">
+                        <div className="expense-top-row">
+                          <span className="expense-time">{expense.time || '--:--'}</span>
+                          <span className="expense-category-label">{expense.category}</span>
+                        </div>
                         <span className="expense-place">{expense.place || 'No place'}</span>
                         <span className="expense-amount">{expense.amount.toLocaleString()} {expense.currency}</span>
                       </div>

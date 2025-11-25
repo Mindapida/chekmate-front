@@ -1,5 +1,18 @@
-.home-page { min-height: 100vh; background: #fafafa; font-family: 'Quicksand', sans-serif; display: flex; flex-direction: column; }
-.home-content { flex: 1; padding-bottom: 70px; }
+.home-page { 
+  height: 100vh; 
+  height: 100dvh; 
+  background: #fafafa; 
+  font-family: 'Quicksand', sans-serif; 
+  display: flex; 
+  flex-direction: column; 
+  overflow: hidden;
+}
+.home-content { 
+  flex: 1; 
+  padding-bottom: 70px; 
+  overflow-y: auto;
+  overflow-x: hidden;
+}
 
 .home-header { display: flex; align-items: center; justify-content: space-between; padding: 16px; height: 62px; background: white; border-bottom: 2px solid #171717; }
 .home-header .header-logo { display: flex; align-items: center; gap: 8px; }

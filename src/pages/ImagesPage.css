@@ -1,19 +1,25 @@
 .images-page {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   background: #fafafa;
   font-family: 'Quicksand', sans-serif;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .page-content {
   flex: 1;
   padding-bottom: 70px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
+/* Header */
 .page-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 16px;
   height: 62px;
   background: white;
@@ -38,13 +44,38 @@
   color: #2b7fff;
 }
 
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  background: #F3F4F6;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.toggle-btn {
+  width: 36px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Trip Info Bar */
 .trip-info-bar {
   padding: 16px;
   background: white;
   border-bottom: 2px solid #171717;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .trip-name-display {
@@ -61,28 +92,20 @@
   color: #6B7280;
 }
 
-.images-container {
-  flex: 1;
+/* Empty State */
+.empty-images {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
-}
-
-.empty-images {
+  padding: 60px 24px;
   text-align: center;
-  padding: 40px;
 }
 
 .empty-images .empty-icon {
   font-size: 64px;
   margin-bottom: 16px;
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  opacity: 0.6;
 }
 
 .empty-images h3 {
@@ -98,53 +121,328 @@
   margin: 0 0 24px 0;
 }
 
-.upload-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
+.go-calendar-btn {
+  padding: 14px 28px;
   background: #2B7FFF;
   color: white;
   border: none;
   border-radius: 12px;
   font-family: 'Quicksand', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.upload-btn:hover {
+.go-calendar-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(43, 127, 255, 0.3);
 }
 
-.stats-bar {
-  display: flex;
-  justify-content: center;
-  gap: 32px;
-  padding: 20px;
-  background: white;
-  border-top: 1px solid #E5E7EB;
+/* Grid View */
+.grid-view {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 2px;
 }
 
-.stat {
+.grid-photo {
+  aspect-ratio: 1;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.grid-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s;
+}
+
+.grid-photo:hover img {
+  transform: scale(1.05);
+}
+
+.photo-type-badge {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  font-size: 12px;
 }
 
-.stat-num {
-  font-size: 24px;
+/* Timeline View */
+.timeline-view {
+  padding: 16px;
+}
+
+.timeline-day {
+  margin-bottom: 24px;
+}
+
+.day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #111827;
+}
+
+.day-date {
+  font-size: 18px;
   font-weight: 700;
   color: #111827;
 }
 
-.stat-label {
-  font-size: 12px;
+.day-count {
+  font-size: 13px;
   color: #6B7280;
-  text-transform: uppercase;
+  background: #F3F4F6;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+/* Day Memo */
+.day-memo {
+  display: flex;
+  gap: 10px;
+  padding: 14px;
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #FDE68A;
+}
+
+.day-memo .memo-icon {
+  font-size: 16px;
+}
+
+.day-memo p {
+  flex: 1;
+  font-size: 14px;
+  color: #92400E;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Day Photos */
+.day-photos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.day-photo {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.day-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.day-photo:hover img {
+  transform: scale(1.05);
+}
+
+.photo-expense-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 10px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Photo Modal */
+.photo-modal {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+  height: 100%;
+  background: rgba(0,0,0,0.95);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.3s ease;
+}
+
+@media (max-width: 430px) {
+  .photo-modal {
+    left: 0;
+    transform: none;
+    max-width: 100%;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.modal-close:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.modal-image {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 16px 16px;
+}
+
+.modal-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.modal-info {
+  background: white;
+  border-radius: 20px 20px 0 0;
+  padding: 24px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6B7280;
+  margin-bottom: 16px;
+}
+
+.modal-expense {
+  background: #F9FAFB;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.expense-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.expense-row .emoji {
+  font-size: 24px;
+}
+
+.expense-row .category {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  text-transform: capitalize;
+}
+
+.expense-row .time {
+  font-size: 13px;
+  color: #6B7280;
+  background: #E5E7EB;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.modal-expense .expense-place {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.modal-expense .expense-amount {
+  font-size: 20px;
+  font-weight: 700;
+  color: #10B981;
+}
+
+.modal-dump-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #6B7280;
+  margin-bottom: 16px;
+}
+
+.modal-memo {
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #FDE68A;
+}
+
+.modal-memo .memo-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #92400E;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.modal-memo p {
+  font-size: 15px;
+  color: #78350F;
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* No Trip Message */
@@ -153,7 +451,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 70px);
+  height: calc(100vh - 70px);
   text-align: center;
   padding: 24px;
 }
@@ -187,4 +485,3 @@
   font-weight: 600;
   cursor: pointer;
 }
-

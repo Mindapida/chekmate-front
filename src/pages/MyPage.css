@@ -1,14 +1,18 @@
 .mypage {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   background: #fafafa;
   font-family: 'Quicksand', sans-serif;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .page-content {
   flex: 1;
   padding-bottom: 70px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .page-header {
