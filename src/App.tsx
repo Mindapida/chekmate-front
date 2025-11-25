@@ -9,6 +9,7 @@ import TripDetailPage from './pages/TripDetailPage';
 import ImagesPage from './pages/ImagesPage';
 import CalendarPage from './pages/CalendarPage';
 import ExpensePage from './pages/ExpensePage';
+import PhotoMemoPage from './pages/PhotoMemoPage';
 import MyPage from './pages/MyPage';
 
 // Protected Route Component
@@ -91,6 +92,11 @@ function AppRoutes() {
       <Route path="/expense" element={
         <ProtectedRoute>
           <ExpensePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/photo-memo" element={
+        <ProtectedRoute>
+          <PhotoMemoPage />
         </ProtectedRoute>
       } />
       <Route path="/mypage" element={

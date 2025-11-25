@@ -260,7 +260,10 @@ export default function CalendarPage() {
               >
                 💰 EXPENSE
               </button>
-              <button className="action-btn photo">
+              <button 
+                className="action-btn photo"
+                onClick={() => navigate(`/photo-memo?date=${selectedDate.toISOString().split('T')[0]}`)}
+              >
                 📷 PHOTO
               </button>
             </div>
