@@ -6,6 +6,9 @@ import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import HomePage from './pages/HomePage';
 import TripDetailPage from './pages/TripDetailPage';
+import ImagesPage from './pages/ImagesPage';
+import CalendarPage from './pages/CalendarPage';
+import MyPage from './pages/MyPage';
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -72,6 +75,21 @@ function AppRoutes() {
       <Route path="/trip/:id" element={
         <ProtectedRoute>
           <TripDetailPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/images" element={
+        <ProtectedRoute>
+          <ImagesPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/calendar" element={
+        <ProtectedRoute>
+          <CalendarPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/mypage" element={
+        <ProtectedRoute>
+          <MyPage />
         </ProtectedRoute>
       } />
     </Routes>

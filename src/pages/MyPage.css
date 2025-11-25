@@ -1,0 +1,317 @@
+.mypage {
+  min-height: 100vh;
+  background: #fafafa;
+  font-family: 'Quicksand', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-content {
+  flex: 1;
+  padding-bottom: 70px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  height: 62px;
+  background: white;
+  border-bottom: 2px solid #171717;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-check {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2b7fff;
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2b7fff;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #F3F4F6;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: #E5E7EB;
+}
+
+.welcome-bar {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #EBF4FF 0%, #DBEAFE 100%);
+  font-size: 14px;
+  color: #1E40AF;
+  border-bottom: 1px solid #BFDBFE;
+}
+
+.current-trip-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400E;
+  border-bottom: 1px solid #FCD34D;
+}
+
+/* Budget Section */
+.budget-section {
+  background: white;
+  margin: 16px;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-btn:hover {
+  background: #F3F4F6;
+}
+
+.budget-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: #F9FAFB;
+  border-radius: 12px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.stat-value.green {
+  color: #059669;
+}
+
+/* Budget Visual */
+.budget-visual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.coin {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.coin-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.coin-inner .currency {
+  font-size: 32px;
+  font-weight: 700;
+  color: #F59E0B;
+}
+
+.coin-inner .percent {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6B7280;
+}
+
+.progress-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.progress-bg {
+  fill: none;
+  stroke: #E5E7EB;
+  stroke-width: 8;
+}
+
+.progress-bar {
+  fill: none;
+  stroke: #F59E0B;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 339.3;
+  transition: stroke-dashoffset 1s ease;
+}
+
+.budget-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: #6B7280;
+}
+
+.budget-info .remaining {
+  font-size: 13px;
+  color: #059669;
+}
+
+/* Categories Section */
+.categories-section {
+  background: white;
+  margin: 0 16px 16px;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.categories-section h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 16px 0;
+}
+
+.category {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.category:last-child {
+  border-bottom: none;
+}
+
+.rank {
+  font-size: 24px;
+}
+
+.category-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cat-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: #E5E7EB;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #F59E0B 0%, #EAB308 100%);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.cat-percent {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+  min-width: 32px;
+}
+
+/* Trips Summary */
+.trips-summary {
+  padding: 16px;
+  text-align: center;
+}
+
+.trips-summary h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6B7280;
+  margin: 0;
+}
+

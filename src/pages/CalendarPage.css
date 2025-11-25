@@ -1,0 +1,249 @@
+.calendar-page {
+  min-height: 100vh;
+  background: #fafafa;
+  font-family: 'Quicksand', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-content {
+  flex: 1;
+  padding-bottom: 70px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  height: 62px;
+  background: white;
+  border-bottom: 2px solid #171717;
+}
+
+.page-header .header-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-header .logo-check {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2b7fff;
+}
+
+.page-header .logo-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2b7fff;
+}
+
+/* Calendar Container */
+.calendar-container {
+  background: white;
+  margin: 16px;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.nav-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: #F3F4F6;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  background: #E5E7EB;
+}
+
+.month-year {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.month-year h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+/* Calendar Grid */
+.calendar-grid {
+  border-top: 1px solid #E5E7EB;
+  padding-top: 16px;
+}
+
+.day-names {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 8px;
+}
+
+.day-name {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+  padding: 8px 0;
+}
+
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.day.empty {
+  background: transparent;
+}
+
+.day.in-trip {
+  background: linear-gradient(135deg, #2B7FFF 0%, #667eea 100%);
+  color: white;
+  animation: pulseTrip 2s ease-in-out infinite;
+}
+
+@keyframes pulseTrip {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Trip Summary */
+.trip-summary {
+  background: white;
+  margin: 0 16px 16px;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.summary-item .icon {
+  font-size: 20px;
+}
+
+.summary-item .label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border: 2px solid #171717;
+  border-radius: 12px;
+  background: white;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn.expense:hover {
+  background: #FEF3C7;
+  border-color: #F59E0B;
+}
+
+.action-btn.photo:hover {
+  background: #DBEAFE;
+  border-color: #3B82F6;
+}
+
+/* No Trip Message */
+.no-trip-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 70px);
+  text-align: center;
+  padding: 24px;
+}
+
+.no-trip-message span {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.no-trip-message h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.no-trip-message p {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 0 0 24px 0;
+}
+
+.no-trip-message button {
+  padding: 12px 24px;
+  background: #2B7FFF;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
