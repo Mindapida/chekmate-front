@@ -1,6 +1,8 @@
 import { apiClient, tokenManager } from './client';
 import type { User, Trip, TripParticipant, Expense, DiaryEntry, Budget, Settlement, LoginResponse } from '../types/api';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
 export const authApi = {
   login: async (username: string, password: string): Promise<LoginResponse> => {
     const formData = new URLSearchParams(); formData.append('username', username); formData.append('password', password);
@@ -47,6 +49,40 @@ export const fxApi = {
     const params = new URLSearchParams({ from_currency: from, to_currency: to });
     if (date) params.append('date', date);
     return apiClient.get(`/fx/rate?${params.toString()}`);
+  },
+};
+
+export const ocrApi = {
+  // Preview OCR - returns parsed items without creating
+  parseReceipt: async (tripId: number, date: string, file: File): Promise<{ amount: number; currency: string; description: string; date: string | null }[]> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const token = tokenManager.getToken();
+    const response = await fetch(`${API_BASE}/expenses/${tripId}/${date}/ocr`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    });
+    
+    if (!response.ok) throw new Error('OCR failed');
+    return response.json();
+  },
+  
+  // OCR and create expenses directly
+  createFromReceipt: async (tripId: number, date: string, file: File): Promise<Expense[]> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const token = tokenManager.getToken();
+    const response = await fetch(`${API_BASE}/expenses/${tripId}/${date}/ocr/create`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    });
+    
+    if (!response.ok) throw new Error('OCR create failed');
+    return response.json();
   },
 };
 

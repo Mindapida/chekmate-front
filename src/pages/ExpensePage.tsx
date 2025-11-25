@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
-import { fxApi, expensesApi, tripsApi } from '../api';
+import { fxApi, expensesApi, tripsApi, ocrApi } from '../api';
 import type { Expense, TripParticipant } from '../types/api';
 import './ExpensePage.css';
 
@@ -19,15 +19,25 @@ const CATEGORIES = [
 ];
 
 // Currencies
-const CURRENCIES = ['KRW', 'USD', 'JPY', 'EUR', 'CNY'];
+const CURRENCIES = ['KRW', 'USD', 'JPY', 'EUR', 'CNY', 'AUD'];
+
+// OCR Preview Item type
+interface OcrItem {
+  amount: number;
+  currency: string;
+  description: string;
+  date: string | null;
+  selected: boolean;
+}
 
 export default function ExpensePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentTrip } = useTrips();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const dateParam = searchParams.get('date') || new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState(dateParam);
+  const [selectedDate] = useState(dateParam);
   
   // Exchange rate state
   const [fxRate, setFxRate] = useState<{ rate: number; from: string; to: string } | null>(null);
@@ -49,6 +59,12 @@ export default function ExpensePage() {
     paid_by: 0,
   });
 
+  // OCR states
+  const [showOcrModal, setShowOcrModal] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrItems, setOcrItems] = useState<OcrItem[]>([]);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+
   // Load exchange rate
   useEffect(() => {
     const loadFxRate = async () => {
@@ -58,7 +74,6 @@ export default function ExpensePage() {
         setFxRate({ rate: data.rate, from: data.from_currency, to: data.to_currency });
       } catch (error) {
         console.warn('Failed to load FX rate, using fallback');
-        // Fallback rate
         setFxRate({ rate: 1355, from: 'USD', to: 'KRW' });
       }
       setFxLoading(false);
@@ -80,7 +95,6 @@ export default function ExpensePage() {
         setParticipants(partData);
       } catch (error) {
         console.warn('Failed to load data, using local storage');
-        // Load from localStorage as fallback
         const stored = localStorage.getItem(`expenses_${currentTrip.id}_${selectedDate}`);
         if (stored) setExpenses(JSON.parse(stored));
       }
@@ -113,7 +127,6 @@ export default function ExpensePage() {
       const created = await expensesApi.create(currentTrip.id, expense);
       setExpenses([...expenses, created]);
     } catch (error) {
-      // Fallback: save locally
       const localExpense = { ...expense, id: Date.now(), trip_id: currentTrip.id, created_at: new Date().toISOString() };
       const updated = [...expenses, localExpense as Expense];
       setExpenses(updated);
@@ -124,15 +137,91 @@ export default function ExpensePage() {
     setNewExpense({ time: '', amount: '', currency: 'JPY', place: '', category: '', paid_by: 0 });
   };
 
+  // Handle file upload for OCR
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentTrip) return;
+
+    // Show image preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setUploadedImage(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    setShowOcrModal(true);
+    setOcrLoading(true);
+    setOcrItems([]);
+
+    try {
+      const results = await ocrApi.parseReceipt(currentTrip.id, selectedDate, file);
+      setOcrItems(results.map(item => ({ ...item, selected: true })));
+    } catch (error) {
+      console.warn('OCR failed, showing manual entry');
+      // Fallback: show empty items for manual entry
+      setOcrItems([{
+        amount: 0,
+        currency: 'KRW',
+        description: 'Unable to read - please enter manually',
+        date: null,
+        selected: false,
+      }]);
+    }
+    setOcrLoading(false);
+  };
+
+  // Save selected OCR items as expenses
+  const handleSaveOcrItems = async () => {
+    if (!currentTrip) return;
+    
+    const selectedItems = ocrItems.filter(item => item.selected && item.amount > 0);
+    
+    for (const item of selectedItems) {
+      const expense: Omit<Expense, 'id' | 'trip_id' | 'created_at'> = {
+        date: selectedDate,
+        time: new Date().toTimeString().slice(0, 5),
+        amount: item.amount,
+        currency: item.currency,
+        category: 'Food', // Default category
+        place: item.description,
+        paid_by: 0,
+      };
+
+      try {
+        const created = await expensesApi.create(currentTrip.id, expense);
+        setExpenses(prev => [...prev, created]);
+      } catch (error) {
+        const localExpense = { ...expense, id: Date.now(), trip_id: currentTrip.id, created_at: new Date().toISOString() };
+        setExpenses(prev => [...prev, localExpense as Expense]);
+      }
+    }
+
+    setShowOcrModal(false);
+    setOcrItems([]);
+    setUploadedImage(null);
+  };
+
+  const toggleOcrItem = (index: number) => {
+    setOcrItems(prev => prev.map((item, i) => 
+      i === index ? { ...item, selected: !item.selected } : item
+    ));
+  };
+
+  const updateOcrItem = (index: number, field: keyof OcrItem, value: string | number) => {
+    setOcrItems(prev => prev.map((item, i) => 
+      i === index ? { ...item, [field]: value } : item
+    ));
+  };
+
   const convertToKRW = (amount: number, currency: string) => {
     if (!fxRate) return amount;
-    // Simple conversion (in real app, use proper rates)
     const rates: { [key: string]: number } = {
       'KRW': 1,
       'USD': fxRate.rate,
-      'JPY': fxRate.rate / 150, // Approximate
+      'JPY': fxRate.rate / 150,
       'EUR': fxRate.rate * 1.1,
       'CNY': fxRate.rate / 7.2,
+      'AUD': fxRate.rate / 1.5,
     };
     return Math.round(amount * (rates[currency] || 1));
   };
@@ -155,103 +244,97 @@ export default function ExpensePage() {
 
   return (
     <div className="expense-page">
+      {/* Hidden file input */}
+      <input 
+        type="file" 
+        ref={fileInputRef}
+        accept="image/*"
+        onChange={handleFileUpload}
+        style={{ display: 'none' }}
+      />
+
       {/* Header */}
       <header className="expense-header">
-        <div className="header-left">
-          <div className="header-logo">
-            <span className="logo-check">✓</span>
-            <span className="logo-text">CHECKMATE</span>
-          </div>
-        </div>
         <button className="back-btn" onClick={handleBack}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M4 4L16 16M4 16L16 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
+        <div className="header-title">EXPENSE 💰</div>
+        <div style={{ width: 36 }}></div>
       </header>
 
-      {/* Title Section */}
-      <div className="expense-title-section">
-        <div className="expense-title">
-          <span>EXPENSE</span>
-          <span className="title-emoji">💰</span>
-        </div>
-        <div className="expense-actions">
-          <button className="upload-btn">
-            <span>📷</span>
-            <span>Upload Screenshot</span>
-          </button>
-          <button className="add-btn" onClick={() => setShowAddModal(true)}>
-            <span>✏️</span>
-            <span>ADD MANUALLY</span>
-          </button>
-        </div>
-      </div>
-
-      {/* FX Rate Section */}
-      <div className="fx-rate-section">
-        <span className="fx-label">FX RATE</span>
-        <span className="fx-value">
-          {fxLoading ? '...' : `1 USD = ${fxRate?.rate.toLocaleString() || '---'} KRW`}
+      {/* FX Rate */}
+      <div className="fx-bar">
+        <span className="fx-icon">💱</span>
+        <span className="fx-text">
+          {fxLoading ? 'Loading...' : `1 USD = ${fxRate?.rate.toLocaleString() || '---'} KRW`}
         </span>
-        <button className="fx-refresh" onClick={() => setFxLoading(true)}>
-          🔄
-        </button>
       </div>
 
-      {/* Date Section */}
-      <div className="date-section">
-        <span className="date-icon">📅</span>
-        <span className="date-value">{formatDate(selectedDate)}</span>
+      {/* Date & Actions */}
+      <div className="date-actions">
+        <div className="current-date">
+          <span>📅</span>
+          <span>{formatDate(selectedDate)}</span>
+        </div>
+        <div className="action-btns">
+          <button className="action-btn upload" onClick={() => fileInputRef.current?.click()}>
+            📷 Screenshot
+          </button>
+          <button className="action-btn manual" onClick={() => setShowAddModal(true)}>
+            ✏️ Manual
+          </button>
+        </div>
       </div>
 
       {/* Expenses List */}
-      <div className="expenses-list">
+      <div className="expenses-container">
         {loading ? (
-          <div className="loading">Loading expenses...</div>
+          <div className="loading-state">
+            <span>💰</span>
+            <p>Loading expenses...</p>
+          </div>
         ) : expenses.length === 0 ? (
-          <div className="empty-expenses">
-            <span className="empty-icon">📝</span>
+          <div className="empty-state">
+            <span>📝</span>
             <p>No expenses for this day</p>
-            <button onClick={() => setShowAddModal(true)}>+ Add Expense</button>
+            <p className="hint">Upload a bank screenshot or add manually</p>
           </div>
         ) : (
-          expenses.map((expense) => (
-            <div key={expense.id} className="expense-card">
-              <div className="expense-time">{expense.time}</div>
-              <div className="expense-category">{getCategoryEmoji(expense.category)}</div>
-              <div className="expense-details">
-                <div className="expense-amount-row">
-                  <span className="expense-original">
-                    {expense.amount.toLocaleString()} {expense.currency}
-                  </span>
-                  <span className="expense-arrow">→</span>
-                  <span className="expense-converted">
-                    {convertToKRW(expense.amount, expense.currency).toLocaleString()} KRW
-                  </span>
+          <div className="expenses-list">
+            {expenses.map((expense) => (
+              <div key={expense.id} className="expense-item">
+                <div className="expense-icon">{getCategoryEmoji(expense.category)}</div>
+                <div className="expense-info">
+                  <div className="expense-place">{expense.place || 'Unknown'}</div>
+                  <div className="expense-time">{expense.time}</div>
                 </div>
-                <div className="expense-place">{expense.place || 'No place'}</div>
+                <div className="expense-amount">
+                  <div className="amount-original">
+                    {expense.amount.toLocaleString()} {expense.currency}
+                  </div>
+                  <div className="amount-krw">
+                    ≈ {convertToKRW(expense.amount, expense.currency).toLocaleString()} KRW
+                  </div>
+                </div>
               </div>
-              <div className="expense-payer">
-                <span className="payer-avatar">👤</span>
-              </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Add Expense Modal */}
+      {/* Manual Add Modal */}
       {showAddModal && (
         <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Add Expense</h3>
-              <button className="modal-close" onClick={() => setShowAddModal(false)}>✕</button>
+              <h3>✏️ Add Expense</h3>
+              <button onClick={() => setShowAddModal(false)}>✕</button>
             </div>
 
             <div className="modal-body">
-              {/* Time */}
-              <div className="form-group">
+              <div className="input-group">
                 <label>Time</label>
                 <input 
                   type="time" 
@@ -260,10 +343,9 @@ export default function ExpensePage() {
                 />
               </div>
 
-              {/* Amount & Currency */}
-              <div className="form-group">
-                <label>Amount & Currency</label>
-                <div className="amount-row">
+              <div className="input-group">
+                <label>Amount</label>
+                <div className="amount-input">
                   <input 
                     type="number" 
                     placeholder="0"
@@ -279,8 +361,7 @@ export default function ExpensePage() {
                 </div>
               </div>
 
-              {/* Place */}
-              <div className="form-group">
+              <div className="input-group">
                 <label>Place</label>
                 <input 
                   type="text" 
@@ -290,14 +371,13 @@ export default function ExpensePage() {
                 />
               </div>
 
-              {/* Category */}
-              <div className="form-group">
+              <div className="input-group">
                 <label>Category</label>
-                <div className="category-grid">
+                <div className="category-select">
                   {CATEGORIES.map(cat => (
                     <button 
                       key={cat.name}
-                      className={`category-btn ${newExpense.category === cat.name ? 'active' : ''}`}
+                      className={`cat-btn ${newExpense.category === cat.name ? 'active' : ''}`}
                       onClick={() => setNewExpense({...newExpense, category: cat.name})}
                     >
                       {cat.emoji}
@@ -306,35 +386,110 @@ export default function ExpensePage() {
                 </div>
               </div>
 
-              {/* Paid by */}
-              <div className="form-group">
+              <div className="input-group">
                 <label>Paid by</label>
-                <div className="payer-list">
-                  {participants.length > 0 ? (
-                    participants.map(p => (
-                      <button 
-                        key={p.id}
-                        className={`payer-btn ${newExpense.paid_by === p.id ? 'active' : ''}`}
-                        onClick={() => setNewExpense({...newExpense, paid_by: p.id})}
-                      >
-                        {p.name}
-                      </button>
-                    ))
-                  ) : (
+                <div className="payer-select">
+                  <button 
+                    className={`payer-btn ${newExpense.paid_by === 0 ? 'active' : ''}`}
+                    onClick={() => setNewExpense({...newExpense, paid_by: 0})}
+                  >
+                    Me
+                  </button>
+                  {participants.map(p => (
                     <button 
-                      className={`payer-btn ${newExpense.paid_by === 0 ? 'active' : ''}`}
-                      onClick={() => setNewExpense({...newExpense, paid_by: 0})}
+                      key={p.id}
+                      className={`payer-btn ${newExpense.paid_by === p.id ? 'active' : ''}`}
+                      onClick={() => setNewExpense({...newExpense, paid_by: p.id})}
                     >
-                      Me
+                      {p.name}
                     </button>
-                  )}
+                  ))}
                 </div>
               </div>
             </div>
 
             <div className="modal-footer">
-              <button className="cancel-btn" onClick={() => setShowAddModal(false)}>Cancel</button>
-              <button className="submit-btn" onClick={handleAddExpense}>Add Expense</button>
+              <button className="btn-cancel" onClick={() => setShowAddModal(false)}>Cancel</button>
+              <button className="btn-save" onClick={handleAddExpense}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OCR Modal */}
+      {showOcrModal && (
+        <div className="modal-overlay" onClick={() => setShowOcrModal(false)}>
+          <div className="modal-box ocr-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>📷 Screenshot OCR</h3>
+              <button onClick={() => setShowOcrModal(false)}>✕</button>
+            </div>
+
+            <div className="modal-body">
+              {/* Image Preview */}
+              {uploadedImage && (
+                <div className="image-preview">
+                  <img src={uploadedImage} alt="Uploaded receipt" />
+                </div>
+              )}
+
+              {/* OCR Results */}
+              {ocrLoading ? (
+                <div className="ocr-loading">
+                  <div className="spinner">🔍</div>
+                  <p>Analyzing image...</p>
+                </div>
+              ) : (
+                <div className="ocr-results">
+                  <p className="results-title">Found {ocrItems.length} item(s)</p>
+                  {ocrItems.map((item, idx) => (
+                    <div key={idx} className={`ocr-item ${item.selected ? 'selected' : ''}`}>
+                      <button 
+                        className="select-btn"
+                        onClick={() => toggleOcrItem(idx)}
+                      >
+                        {item.selected ? '✅' : '⬜'}
+                      </button>
+                      <div className="ocr-item-details">
+                        <input 
+                          className="ocr-desc"
+                          value={item.description}
+                          onChange={e => updateOcrItem(idx, 'description', e.target.value)}
+                          placeholder="Description"
+                        />
+                        <div className="ocr-amount-row">
+                          <input 
+                            type="number"
+                            className="ocr-amount"
+                            value={item.amount}
+                            onChange={e => updateOcrItem(idx, 'amount', parseFloat(e.target.value) || 0)}
+                          />
+                          <select 
+                            value={item.currency}
+                            onChange={e => updateOcrItem(idx, 'currency', e.target.value)}
+                          >
+                            {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                        <div className="ocr-krw">
+                          ≈ {convertToKRW(item.amount, item.currency).toLocaleString()} KRW
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setShowOcrModal(false)}>Cancel</button>
+              <button 
+                className="btn-save" 
+                onClick={handleSaveOcrItems}
+                disabled={ocrLoading || ocrItems.filter(i => i.selected).length === 0}
+              >
+                Save Selected ({ocrItems.filter(i => i.selected).length})
+              </button>
             </div>
           </div>
         </div>
@@ -342,4 +497,3 @@ export default function ExpensePage() {
     </div>
   );
 }
-
