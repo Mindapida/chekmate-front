@@ -85,7 +85,11 @@ export default function HomePage() {
                   </div>
                 </div>
               ))}
-              <button className="add-trip-btn" onClick={handleAddTrip}><span>+</span><span>ADD TRIP</span></button>
+              <button className="add-trip-btn" onClick={handleAddTrip}>
+                <span>+</span>
+                <span>New Adventure</span>
+                <span className="btn-airplane">✈️</span>
+              </button>
             </>
           )}
         </div>

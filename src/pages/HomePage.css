@@ -22,8 +22,78 @@
 .trip-name { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; color: #0a0a0a; text-transform: uppercase; }
 .trip-dates { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #0a0a0a; }
 
-.add-trip-btn { display: flex; align-items: center; justify-content: center; gap: 8px; height: 70px; background: white; border: none; border-bottom: 2px solid #171717; cursor: pointer; font-family: 'Quicksand', sans-serif; font-size: 18px; font-weight: 600; }
-.add-trip-btn:hover { background-color: #f5f5f5; }
+/* ADD TRIP Button - Premium Design */
+.add-trip-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.add-trip-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.add-trip-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+}
+
+.add-trip-btn:hover::before {
+  left: 100%;
+}
+
+.add-trip-btn:active {
+  transform: translateY(-1px) scale(0.98);
+}
+
+.add-trip-btn span:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 400;
+  transition: transform 0.3s, background 0.3s;
+}
+
+.add-trip-btn:hover span:first-child {
+  transform: rotate(90deg);
+  background: rgba(255,255,255,0.3);
+}
+
+.add-trip-btn .btn-airplane {
+  font-size: 18px;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.add-trip-btn:hover .btn-airplane {
+  transform: translateX(8px) rotate(45deg);
+}
 
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 24px; text-align: center; background: white; min-height: 400px; }
 .empty-state .empty-icon { font-size: 64px; margin-bottom: 24px; animation: float 3s ease-in-out infinite; }
