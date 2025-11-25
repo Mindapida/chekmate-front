@@ -1,20 +1,48 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './SignUpPage.css';
 
 export default function SignUpPage() {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleBack = () => navigate('/');
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) { alert('Passwords do not match!'); return; }
-    console.log('Sign Up:', { username, password });
-    navigate('/login');
+    
+    if (!username || !password || !confirmPassword) {
+      setError('Please fill in all fields');
+      return;
+    }
+    
+    if (password !== confirmPassword) { 
+      setError('Passwords do not match!'); 
+      return; 
+    }
+    
+    if (password.length < 4) {
+      setError('Password must be at least 4 characters');
+      return;
+    }
+    
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      await register(username, password);
+      navigate('/home');
+    } catch (err) {
+      setError('Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -38,23 +66,50 @@ export default function SignUpPage() {
         </div>
 
         <form className="signup-form" onSubmit={handleSignUp}>
+          {error && <div className="error-message">{error}</div>}
+          
           <div className="form-group">
             <label htmlFor="username">Username</label>
-            <input type="text" id="username" placeholder="Choose a username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+            <input 
+              type="text" 
+              id="username" 
+              placeholder="Choose a username" 
+              value={username} 
+              onChange={(e) => setUsername(e.target.value)} 
+              disabled={isLoading}
+              required 
+            />
           </div>
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <input type="password" id="password" placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <input 
+              type="password" 
+              id="password" 
+              placeholder="Create a password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              disabled={isLoading}
+              required 
+            />
           </div>
           <div className="form-group">
             <label htmlFor="confirmPassword">Confirm Password</label>
-            <input type="password" id="confirmPassword" placeholder="Confirm your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+            <input 
+              type="password" 
+              id="confirmPassword" 
+              placeholder="Confirm your password" 
+              value={confirmPassword} 
+              onChange={(e) => setConfirmPassword(e.target.value)} 
+              disabled={isLoading}
+              required 
+            />
           </div>
-          <button type="submit" className="btn-signup">Sign Up</button>
+          <button type="submit" className="btn-signup" disabled={isLoading}>
+            {isLoading ? 'Creating Account...' : 'Sign Up'}
+          </button>
         </form>
         <p className="login-link">Already have an account? <span onClick={() => navigate('/login')}>Login</span></p>
       </div>
     </div>
   );
 }
-

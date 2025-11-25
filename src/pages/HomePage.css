@@ -1,10 +1,14 @@
 .home-page { min-height: 100vh; background: #fafafa; font-family: 'Quicksand', sans-serif; display: flex; flex-direction: column; }
 .home-content { flex: 1; padding-bottom: 70px; }
 
-.home-header { display: flex; align-items: center; padding: 16px; height: 62px; background: white; border-bottom: 2px solid #171717; }
+.home-header { display: flex; align-items: center; justify-content: space-between; padding: 16px; height: 62px; background: white; border-bottom: 2px solid #171717; }
 .home-header .header-logo { display: flex; align-items: center; gap: 8px; }
 .home-header .logo-check { font-size: 20px; font-weight: 600; color: #2b7fff; }
 .home-header .logo-text { font-size: 20px; font-weight: 600; color: #2b7fff; }
+.logout-btn { background: none; border: none; cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.2s; }
+.logout-btn:hover { background: #f3f4f6; }
+
+.welcome-message { padding: 12px 16px; background: linear-gradient(135deg, #EBF4FF 0%, #DBEAFE 100%); font-size: 14px; color: #1E40AF; border-bottom: 1px solid #BFDBFE; }
 
 .section-header { display: flex; align-items: center; gap: 8px; padding: 16px; height: 62px; background: white; border-bottom: 2px solid #171717; }
 .section-header h2 { font-size: 20px; font-weight: 600; color: #2b7fff; margin: 0; }
@@ -28,4 +32,9 @@
 .empty-state p { font-size: 16px; font-weight: 600; color: #737373; margin: 0 0 32px 0; }
 .create-trip-btn { padding: 16px 32px; background: #2b7fff; color: white; font-family: 'Quicksand', sans-serif; font-size: 16px; font-weight: 700; border: none; border-radius: 16px; cursor: pointer; box-shadow: 0px 10px 15px -3px rgba(0,0,0,0.1); }
 .create-trip-btn:hover { transform: translateY(-2px); }
+
+.loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 24px; text-align: center; background: white; min-height: 400px; }
+.loading-spinner { font-size: 48px; animation: spin 2s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.loading-state p { margin-top: 16px; font-size: 16px; color: #6B7280; }
 
