@@ -1,0 +1,259 @@
+.trip-detail-page {
+  min-height: 100vh;
+  background: #fafafa;
+  font-family: 'Quicksand', sans-serif;
+}
+
+/* Header */
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px;
+  background: white;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.header-info {
+  flex: 1;
+}
+
+.trip-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.trip-dates {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 0;
+}
+
+.close-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.close-btn:hover {
+  background: #F3F4F6;
+}
+
+/* Content */
+.detail-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Section */
+.section {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.add-participant-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: white;
+  border: 2px solid #E5E7EB;
+  border-radius: 20px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-participant-btn:hover {
+  border-color: #2B7FFF;
+  color: #2B7FFF;
+  background: #EBF4FF;
+}
+
+.empty-text {
+  text-align: center;
+  color: #9CA3AF;
+  font-size: 14px;
+  padding: 24px 0;
+  margin: 0;
+}
+
+/* Participants List */
+.participants-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.participant-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #F3F4F6;
+  border-radius: 12px;
+  animation: chipIn 0.3s ease;
+}
+
+@keyframes chipIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.participant-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.remove-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: #E5E7EB;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: #6B7280;
+}
+
+.remove-btn:hover {
+  background: #EF4444;
+  color: white;
+}
+
+/* Settlement Card */
+.settlement-card {
+  background: #F9FAFB;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.settlement-card p {
+  color: #6B7280;
+  font-size: 14px;
+  margin: 0 0 16px 0;
+}
+
+.settle-btn {
+  padding: 12px 32px;
+  background: #E5E7EB;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #9CA3AF;
+  cursor: not-allowed;
+}
+
+.settle-btn:not(:disabled) {
+  background: #2B7FFF;
+  color: white;
+  cursor: pointer;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-value {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Not Found */
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+  padding: 24px;
+}
+
+.not-found span {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.not-found h2 {
+  font-size: 24px;
+  color: #374151;
+  margin: 0 0 24px 0;
+}
+
+.not-found button {
+  padding: 12px 24px;
+  background: #2B7FFF;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+

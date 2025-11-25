@@ -14,6 +14,35 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Helper to add user to registered users list
+const addToRegisteredUsers = (user: User) => {
+  const stored = localStorage.getItem('registered_users');
+  const users: { id: number; username: string }[] = stored ? JSON.parse(stored) : [];
+  
+  if (!users.some(u => u.username === user.username)) {
+    users.push({ id: user.id, username: user.username });
+    localStorage.setItem('registered_users', JSON.stringify(users));
+  }
+};
+
+// Helper to find existing user by username
+const findUserByUsername = (username: string): User | null => {
+  const stored = localStorage.getItem('registered_users');
+  if (!stored) return null;
+  
+  const users: { id: number; username: string }[] = JSON.parse(stored);
+  const found = users.find(u => u.username === username);
+  
+  if (found) {
+    return {
+      id: found.id,
+      username: found.username,
+      created_at: new Date().toISOString(),
+    };
+  }
+  return null;
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,17 +69,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.login(username, password);
       const userData = await authApi.getCurrentUser();
+      addToRegisteredUsers(userData);
       setUser(userData);
     } catch (error) {
       // Fallback: localStorage mock login for demo
       console.warn('Backend not available, using local storage');
-      const mockUser: User = {
+      
+      // Check if user exists
+      const existingUser = findUserByUsername(username);
+      const mockUser: User = existingUser || {
         id: Date.now(),
         username,
         created_at: new Date().toISOString(),
       };
+      
       localStorage.setItem('mock_user', JSON.stringify(mockUser));
       localStorage.setItem('access_token', 'mock_token_' + Date.now());
+      addToRegisteredUsers(mockUser);
       setUser(mockUser);
     }
   };
@@ -62,6 +97,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       // Fallback: localStorage mock register
       console.warn('Backend not available, using local storage');
+      
+      // Check if username already exists
+      const existingUser = findUserByUsername(username);
+      if (existingUser) {
+        throw new Error('Username already exists');
+      }
+      
       const mockUser: User = {
         id: Date.now(),
         username,
@@ -69,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       localStorage.setItem('mock_user', JSON.stringify(mockUser));
       localStorage.setItem('access_token', 'mock_token_' + Date.now());
+      addToRegisteredUsers(mockUser);
       setUser(mockUser);
     }
   };

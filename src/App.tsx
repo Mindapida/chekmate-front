@@ -5,6 +5,7 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import HomePage from './pages/HomePage';
+import TripDetailPage from './pages/TripDetailPage';
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -66,6 +67,11 @@ function AppRoutes() {
       <Route path="/home" element={
         <ProtectedRoute>
           <HomePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/trip/:id" element={
+        <ProtectedRoute>
+          <TripDetailPage />
         </ProtectedRoute>
       } />
     </Routes>
