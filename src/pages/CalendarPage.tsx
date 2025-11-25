@@ -4,8 +4,8 @@ import { useTrips } from '../context/TripContext';
 import BottomNav from '../components/BottomNav';
 import './CalendarPage.css';
 
-// Mood emoji icons: sad, heart, rain, sunny
-const MOOD_EMOJIS = ['😢', '❤️', '🌧️', '☀️'];
+// Mood emoji icons: sad, heart, rain, sunny + happy, cool, party
+const MOOD_EMOJIS = ['😢', '❤️', '🌧️', '☀️', '😊', '😎', '🥳'];
 
 // Local storage key for emoji data
 const EMOJI_STORAGE_KEY = 'calendar_emojis';
@@ -30,6 +30,14 @@ export default function CalendarPage() {
       setEmojiData(JSON.parse(stored));
     }
   }, []);
+
+  // Auto-navigate to trip's start month when currentTrip changes
+  useEffect(() => {
+    if (currentTrip) {
+      const tripStart = new Date(currentTrip.start_date);
+      setCurrentDate(new Date(tripStart.getFullYear(), tripStart.getMonth(), 1));
+    }
+  }, [currentTrip]);
 
   // Save emoji data to localStorage
   const saveEmojiData = (data: EmojiData) => {
@@ -117,10 +125,8 @@ export default function CalendarPage() {
     saveEmojiData(newData);
   };
 
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'];
-
-  const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   const prevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
@@ -137,13 +143,13 @@ export default function CalendarPage() {
 
   const formatSelectedDate = () => {
     if (!selectedDate) return '';
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
-    };
-    return selectedDate.toLocaleDateString('en-US', options);
+    return `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}`;
+  };
+
+  const formatTripDates = () => {
+    const start = `${tripStart.getMonth() + 1}/${tripStart.getDate()}`;
+    const end = `${tripEnd.getMonth() + 1}/${tripEnd.getDate()}`;
+    return `${start} - ${end}`;
   };
 
   const daysInMonth = getDaysInMonth(currentDate);
@@ -152,44 +158,34 @@ export default function CalendarPage() {
   return (
     <div className="calendar-page">
       <div className="page-content">
-        {/* Header */}
-        <header className="page-header">
+        {/* Compact Header */}
+        <header className="compact-header">
           <div className="header-logo">
             <span className="logo-check">✓</span>
             <span className="logo-text">CHECKMATE</span>
           </div>
+          <div className="trip-badge">
+            <span>✈️</span>
+            <span>{currentTrip.name}</span>
+            <span className="trip-period">{formatTripDates()}</span>
+          </div>
         </header>
-
-        {/* Trip Info Bar */}
-        <div className="trip-info-bar">
-          <span className="trip-icon">✈️</span>
-          <span className="trip-name">{currentTrip.name}</span>
-          <span className="trip-dates">{currentTrip.start_date} ~ {currentTrip.end_date}</span>
-        </div>
 
         {/* Calendar */}
         <div className="calendar-wrapper">
           {/* Month Navigation */}
           <div className="month-nav">
-            <button className="month-btn" onClick={prevMonth}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
+            <button className="month-btn" onClick={prevMonth}>◀</button>
             <div className="month-title">
-              <span>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
             </div>
-            <button className="month-btn" onClick={nextMonth}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
+            <button className="month-btn" onClick={nextMonth}>▶</button>
           </div>
 
           {/* Day Names */}
           <div className="day-names">
-            {dayNames.map(day => (
-              <div key={day} className={`day-name ${day === 'SUN' ? 'sun' : day === 'SAT' ? 'sat' : ''}`}>
+            {dayNames.map((day, idx) => (
+              <div key={idx} className={`day-name ${idx === 0 ? 'sun' : idx === 6 ? 'sat' : ''}`}>
                 {day}
               </div>
             ))}
@@ -226,41 +222,23 @@ export default function CalendarPage() {
                 >
                   <span className="day-number">{day}</span>
                   {emoji && <span className="day-emoji">{emoji}</span>}
-                  {(isStart || isEnd) && !emoji && (
-                    <span className="trip-marker">{isStart ? '🛫' : '🛬'}</span>
-                  )}
                 </div>
               );
             })}
           </div>
-
-          {/* Legend */}
-          <div className="calendar-legend">
-            <div className="legend-item">
-              <span className="legend-dot trip"></span>
-              <span>Trip Period</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot selected"></span>
-              <span>Selected</span>
-            </div>
-          </div>
         </div>
 
-        {/* Emoji Selector - Always visible */}
-        <div className="emoji-section">
-          <div className="emoji-header">
-            {selectedDate ? (
-              <>
-                <span className="emoji-date-icon">📅</span>
-                <span className="emoji-date">{formatSelectedDate()}</span>
-              </>
-            ) : (
-              <span className="emoji-hint">👆 Select a date to add mood</span>
-            )}
-          </div>
-          
-          <div className="emoji-selector">
+        {/* Emoji & Actions Section */}
+        <div className="actions-section">
+          {/* Selected Date */}
+          {selectedDate && (
+            <div className="selected-info">
+              📅 {formatSelectedDate()}
+            </div>
+          )}
+
+          {/* Emoji Selector */}
+          <div className="emoji-row">
             {MOOD_EMOJIS.map((emoji, idx) => (
               <button 
                 key={idx} 
@@ -275,17 +253,15 @@ export default function CalendarPage() {
 
           {/* Action Buttons */}
           {selectedDate && isInTripRange(selectedDate.getDate()) && (
-            <div className="action-buttons">
+            <div className="action-row">
               <button 
-                className="action-btn expense-btn"
+                className="action-btn expense"
                 onClick={() => navigate(`/expense?date=${selectedDate.toISOString().split('T')[0]}`)}
               >
-                <span className="action-icon">💰</span>
-                <span className="action-text">EXPENSE</span>
+                💰 EXPENSE
               </button>
-              <button className="action-btn photo-btn">
-                <span className="action-icon">📷</span>
-                <span className="action-text">PHOTO</span>
+              <button className="action-btn photo">
+                📷 PHOTO
               </button>
             </div>
           )}
