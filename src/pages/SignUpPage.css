@@ -1,17 +1,49 @@
 .signup-page {
   min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(115deg, rgba(239,246,255,1) 0%, rgba(253,242,248,1) 50%, rgba(254,252,232,1) 100%);
   font-family: 'Quicksand', sans-serif;
+  display: flex;
+  flex-direction: column;
 }
 
-.signup-header { display: flex; align-items: center; gap: 12px; padding: 16px; height: 68px; }
-.signup-header .back-button { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 50%; cursor: pointer; }
+.signup-header { 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  padding: 16px; 
+  height: 68px; 
+  flex-shrink: 0;
+}
+.signup-header .back-button { 
+  width: 36px; 
+  height: 36px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  background: transparent; 
+  border: none; 
+  border-radius: 50%; 
+  cursor: pointer; 
+  transition: background-color 0.2s;
+}
 .signup-header .back-button:hover { background-color: rgba(43,127,255,0.1); }
 .signup-header .header-logo { display: flex; align-items: center; gap: 8px; }
 .signup-header .logo-check { font-size: 20px; font-weight: 600; color: #2b7fff; }
 .signup-header .logo-text { font-size: 20px; font-weight: 600; color: #2b7fff; }
 
-.signup-container { display: flex; flex-direction: column; gap: 20px; padding: 0 24px; margin-top: 100px; max-width: 393px; margin-left: auto; margin-right: auto; }
+.signup-container { 
+  display: flex; 
+  flex-direction: column; 
+  justify-content: center;
+  gap: 20px; 
+  padding: 0 24px; 
+  flex: 1;
+  max-width: 393px; 
+  width: 100%;
+  margin: 0 auto; 
+  box-sizing: border-box;
+}
 .signup-welcome { text-align: center; }
 .signup-welcome h1 { font-size: 24px; font-weight: 700; color: #171717; margin: 0 0 8px 0; }
 .signup-welcome p { font-size: 14px; font-weight: 600; color: #737373; margin: 0; }
