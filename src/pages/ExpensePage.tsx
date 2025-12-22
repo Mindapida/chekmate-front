@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
-import { fxApi, expensesApi, tripsApi, ocrApi } from '../api';
+import { expensesApi, tripsApi, ocrApi } from '../api';
 import type { Expense, TripParticipant } from '../types/api';
 import './ExpensePage.css';
 
@@ -67,16 +67,22 @@ export default function ExpensePage() {
   const [ocrItems, setOcrItems] = useState<OcrItem[]>([]);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
 
-  // Load exchange rate
+  // Load exchange rate - using free API or fallback
   useEffect(() => {
     const loadFxRate = async () => {
       setFxLoading(true);
       try {
-        const data = await fxApi.getRate('USD', 'KRW', selectedDate);
-        setFxRate({ rate: data.rate, from: data.from_currency, to: data.to_currency });
-      } catch (error) {
-        console.warn('Failed to load FX rate, using fallback');
-        setFxRate({ rate: 1355, from: 'USD', to: 'KRW' });
+        // Try free exchangerate API first
+        const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        if (response.ok) {
+          const data = await response.json();
+          setFxRate({ rate: Math.round(data.rates.KRW), from: 'USD', to: 'KRW' });
+        } else {
+          throw new Error('Exchange rate API failed');
+        }
+      } catch {
+        // Fallback to approximate rate
+        setFxRate({ rate: 1380, from: 'USD', to: 'KRW' });
       }
       setFxLoading(false);
     };
@@ -90,13 +96,13 @@ export default function ExpensePage() {
       setLoading(true);
       try {
         const [expData, partData] = await Promise.all([
-          expensesApi.getByTrip(currentTrip.id, selectedDate),
+          expensesApi.getByDate(currentTrip.id, selectedDate),
           tripsApi.getParticipants(currentTrip.id),
         ]);
         setExpenses(expData);
         setParticipants(partData);
       } catch (error) {
-        console.warn('Failed to load data, using local storage');
+        console.warn('Failed to load data:', error);
         const stored = localStorage.getItem(`expenses_${currentTrip.id}_${selectedDate}`);
         if (stored) setExpenses(JSON.parse(stored));
       }
@@ -117,22 +123,47 @@ export default function ExpensePage() {
     
     const time = `${newExpense.hour.padStart(2, '0')}:${newExpense.minute.padStart(2, '0')}`;
     
-    const expense: Omit<Expense, 'id' | 'trip_id' | 'created_at'> = {
-      date: selectedDate,
+    // Backend expects: no date (it's in URL), and participant_ids is required
+    const expenseData = {
       time: time,
       amount: parseFloat(newExpense.amount),
       currency: newExpense.currency,
       category: newExpense.category,
-      place: newExpense.place,
-      paid_by: newExpense.paid_by || 0,
+      place: newExpense.place || null,
+      paid_by: newExpense.paid_by || null,
+      // Use selected participants or all participants if none selected
+      participant_ids: newExpense.split_with.length > 0 
+        ? newExpense.split_with 
+        : participants.map(p => p.id),
     };
 
     try {
-      const created = await expensesApi.create(currentTrip.id, expense);
+      const created = await expensesApi.create(currentTrip.id, selectedDate, expenseData);
       setExpenses([...expenses, created]);
     } catch (error) {
-      const localExpense = { ...expense, id: Date.now(), trip_id: currentTrip.id, created_at: new Date().toISOString() };
-      const updated = [...expenses, localExpense as Expense];
+      console.warn('Failed to create expense:', error);
+      
+      // Check if it's a server overload error
+      const errorMsg = error instanceof Error ? error.message : '';
+      if (errorMsg.includes('503') || errorMsg.includes('overload')) {
+        alert('⚠️ 서버가 일시적으로 바쁩니다. 잠시 후 다시 시도해주세요.\n(Server is temporarily busy. Please try again.)');
+        return;
+      }
+      
+      // Fallback to local storage for other errors
+      const localExpense: Expense = { 
+        id: Date.now(), 
+        trip_id: currentTrip.id, 
+        date: selectedDate,
+        time: expenseData.time,
+        amount: expenseData.amount,
+        currency: expenseData.currency,
+        category: expenseData.category,
+        place: expenseData.place || '',
+        paid_by: expenseData.paid_by || 0,
+        created_at: new Date().toISOString() 
+      };
+      const updated = [...expenses, localExpense];
       setExpenses(updated);
       localStorage.setItem(`expenses_${currentTrip.id}_${selectedDate}`, JSON.stringify(updated));
     }
@@ -141,10 +172,21 @@ export default function ExpensePage() {
     setNewExpense({ hour: '12', minute: '00', amount: '', currency: 'JPY', place: '', category: '', paid_by: 0, split_with: [] });
   };
 
-  // Handle file upload for OCR
+  // Handle file upload for OCR - uses /ocr/create endpoint
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !currentTrip) return;
+    if (!file || !currentTrip) {
+      console.error('❌ No file or no currentTrip:', { file, currentTrip });
+      return;
+    }
+
+    console.log('📷 OCR Upload started:', {
+      tripId: currentTrip.id,
+      date: selectedDate,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+    });
 
     // Show image preview
     const reader = new FileReader();
@@ -158,17 +200,51 @@ export default function ExpensePage() {
     setOcrItems([]);
 
     try {
-      const results = await ocrApi.parseReceipt(currentTrip.id, selectedDate, file);
-      setOcrItems(results.map(item => ({ ...item, selected: true })));
+      // Get participant IDs for the expense
+      const participantIds = participants.map(p => p.id);
+      console.log('🔄 Calling OCR /create API...', { participantIds });
+      
+      // Use /ocr/create - creates expenses directly with participants
+      const createdExpenses = await ocrApi.createFromReceipt(currentTrip.id, selectedDate, file, participantIds);
+      console.log('✅ OCR Created Expenses:', createdExpenses);
+      
+      // Add created expenses to the list
+      setExpenses(prev => [...prev, ...createdExpenses]);
+      
+      // Show results in modal as confirmation
+      setOcrItems(createdExpenses.map(exp => ({
+        amount: exp.amount,
+        currency: exp.currency,
+        description: exp.place || exp.category || 'Item',
+        date: exp.date,
+        selected: true,
+      })));
+      
+      // Auto close modal after success
+      setTimeout(() => {
+        setShowOcrModal(false);
+        setOcrItems([]);
+        setUploadedImage(null);
+      }, 2000);
+      
     } catch (error) {
-      console.warn('OCR failed, showing manual entry');
-      setOcrItems([{
-        amount: 0,
-        currency: 'KRW',
-        description: 'Unable to read - please enter manually',
-        date: null,
-        selected: false,
-      }]);
+      console.error('❌ OCR Error:', error);
+      
+      // Check if it's a server overload error
+      const errorMsg = error instanceof Error ? error.message : '';
+      if (errorMsg.includes('503') || errorMsg.includes('overload')) {
+        alert('⚠️ 서버가 일시적으로 바쁩니다. 잠시 후 다시 시도해주세요.\n(Server is temporarily busy. Please try again in a few seconds.)');
+        setShowOcrModal(false);
+        setUploadedImage(null);
+      } else {
+        setOcrItems([{
+          amount: 0,
+          currency: 'KRW',
+          description: 'Unable to read - please enter manually',
+          date: null,
+          selected: false,
+        }]);
+      }
     }
     setOcrLoading(false);
   };
@@ -178,24 +254,46 @@ export default function ExpensePage() {
     if (!currentTrip) return;
     
     const selectedItems = ocrItems.filter(item => item.selected && item.amount > 0);
+    const participantIds = participants.map(p => p.id);
     
     for (const item of selectedItems) {
-      const expense: Omit<Expense, 'id' | 'trip_id' | 'created_at'> = {
-        date: selectedDate,
+      const expenseData = {
         time: new Date().toTimeString().slice(0, 5),
         amount: item.amount,
         currency: item.currency,
         category: 'Food',
-        place: item.description,
-        paid_by: 0,
+        place: item.description || null,
+        paid_by: null,
+        participant_ids: participantIds,
       };
 
       try {
-        const created = await expensesApi.create(currentTrip.id, expense);
+        const created = await expensesApi.create(currentTrip.id, selectedDate, expenseData);
         setExpenses(prev => [...prev, created]);
       } catch (error) {
-        const localExpense = { ...expense, id: Date.now(), trip_id: currentTrip.id, created_at: new Date().toISOString() };
-        setExpenses(prev => [...prev, localExpense as Expense]);
+        console.warn('Failed to create OCR expense:', error);
+        
+        // Check if it's a server overload error
+        const errorMsg = error instanceof Error ? error.message : '';
+        if (errorMsg.includes('503') || errorMsg.includes('overload')) {
+          alert('⚠️ 서버가 일시적으로 바쁩니다. 일부 항목이 저장되지 않았습니다.\n(Server is temporarily busy. Some items were not saved.)');
+          break; // Stop processing remaining items
+        }
+        
+        // Fallback to local storage for other errors
+        const localExpense: Expense = { 
+          id: Date.now(), 
+          trip_id: currentTrip.id, 
+          date: selectedDate,
+          time: expenseData.time,
+          amount: expenseData.amount,
+          currency: expenseData.currency,
+          category: expenseData.category,
+          place: expenseData.place || '',
+          paid_by: 0,
+          created_at: new Date().toISOString() 
+        };
+        setExpenses(prev => [...prev, localExpense]);
       }
     }
 

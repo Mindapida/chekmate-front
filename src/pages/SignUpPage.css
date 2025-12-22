@@ -153,3 +153,29 @@
   cursor: pointer;
 }
 
+/* Mobile Optimizations */
+@media (max-width: 480px) {
+  .signup-container {
+    justify-content: flex-start;
+    padding-top: 32px;
+  }
+  
+  .signup-welcome h1 {
+    font-size: 22px;
+  }
+  
+  .form-group input {
+    height: 48px;
+    padding: 10px 14px;
+  }
+  
+  .signup-form .btn-signup {
+    height: 44px;
+  }
+  
+  .login-link {
+    margin-top: 12px;
+  }
+}
+
+

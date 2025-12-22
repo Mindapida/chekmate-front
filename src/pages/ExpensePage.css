@@ -779,3 +779,264 @@
   font-weight: 600;
   cursor: pointer;
 }
+
+/* Mobile Optimizations */
+@media (max-width: 480px) {
+  .expense-header {
+    padding: 12px;
+    height: 48px;
+  }
+  
+  .expense-header .logo-check,
+  .expense-header .logo-text {
+    font-size: 16px;
+  }
+  
+  .expense-title-bar {
+    padding: 12px;
+  }
+  
+  .title-text {
+    font-size: 18px;
+  }
+  
+  .title-emoji {
+    font-size: 18px;
+  }
+  
+  .action-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+    gap: 4px;
+  }
+  
+  .expense-content {
+    padding: 12px;
+  }
+  
+  .expense-item {
+    padding: 10px;
+  }
+  
+  .item-amount {
+    font-size: 16px;
+  }
+  
+  .modal-content {
+    padding: 16px;
+    margin: 16px;
+    max-height: 90vh;
+  }
+  
+  .modal-title {
+    font-size: 18px;
+  }
+  
+  .form-row {
+    gap: 8px;
+  }
+  
+  .form-group input,
+  .form-group select {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  
+  .modal-footer {
+    gap: 8px;
+    padding-top: 12px;
+  }
+  
+  .modal-footer button {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  
+  .upload-zone {
+    padding: 24px 16px;
+  }
+  
+  .upload-zone .upload-icon {
+    font-size: 36px;
+  }
+  
+  .upload-zone p {
+    font-size: 13px;
+  }
+}
+
+/* Smaller Phone Screens (iPhone SE, etc.) */
+@media (max-width: 375px) {
+  .expense-header {
+    padding: 10px;
+    height: 44px;
+  }
+  
+  .expense-header .logo-check,
+  .expense-header .logo-text {
+    font-size: 14px;
+  }
+  
+  .expense-title-bar {
+    padding: 10px;
+  }
+  
+  .title-row {
+    margin-bottom: 10px;
+  }
+  
+  .title-text {
+    font-size: 16px;
+  }
+  
+  .title-emoji {
+    font-size: 16px;
+  }
+  
+  .action-btn {
+    padding: 8px 10px;
+    font-size: 11px;
+    gap: 3px;
+  }
+  
+  .action-btn .icon {
+    font-size: 12px;
+  }
+  
+  .fx-bar {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+  
+  .fx-label, .fx-value {
+    font-size: 12px;
+  }
+  
+  .fx-rate {
+    font-size: 14px;
+  }
+  
+  .date-bar {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+  
+  .date-icon {
+    font-size: 16px;
+  }
+  
+  .date-text {
+    font-size: 16px;
+  }
+  
+  .expenses-container {
+    padding: 12px;
+  }
+  
+  .expense-card {
+    padding: 12px;
+    gap: 10px;
+  }
+  
+  .expense-time {
+    font-size: 12px;
+    min-width: 40px;
+  }
+  
+  .expense-category {
+    font-size: 20px;
+  }
+  
+  .expense-details .original,
+  .expense-details .converted {
+    font-size: 13px;
+  }
+  
+  .expense-details .place {
+    font-size: 12px;
+  }
+  
+  .payer-name {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+  
+  /* Modal adjustments */
+  .add-expense-modal, .ocr-modal {
+    max-height: 85%;
+    border-radius: 14px;
+  }
+  
+  .modal-header {
+    padding: 16px 20px;
+  }
+  
+  .modal-header h3 {
+    font-size: 18px;
+  }
+  
+  .modal-body {
+    padding: 16px 20px;
+  }
+  
+  .modal-footer {
+    padding: 14px 20px;
+    gap: 10px;
+  }
+  
+  .cancel-btn, .add-btn {
+    height: 46px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  
+  .form-section {
+    margin-bottom: 16px;
+  }
+  
+  .form-section label {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  
+  .time-picker select {
+    height: 40px;
+    padding: 0 10px;
+    font-size: 14px;
+  }
+  
+  .amount-input {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+  
+  .currency-select {
+    width: 70px;
+    height: 40px;
+    font-size: 13px;
+  }
+  
+  .place-input {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+  
+  .category-grid {
+    gap: 6px;
+  }
+  
+  .category-btn {
+    height: 42px;
+  }
+  
+  .category-btn .cat-emoji {
+    font-size: 18px;
+  }
+  
+  .payer-chip {
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+}

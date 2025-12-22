@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
-import BottomNav from '../components/BottomNav';
+import BottomNav, { saveLastPage } from '../components/BottomNav';
 import './CalendarPage.css';
 
 // Mood emoji icons: sad, heart, rain, sunny + happy, cool, party
@@ -22,6 +22,11 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [emojiData, setEmojiData] = useState<EmojiData>({});
+
+  // Save current page on mount
+  useEffect(() => {
+    saveLastPage('/calendar');
+  }, []);
 
   // Load emoji data from localStorage
   useEffect(() => {
@@ -94,9 +99,17 @@ export default function CalendarPage() {
     return checkDate.toDateString() === selectedDate.toDateString();
   };
 
+  // Format date as YYYY-MM-DD in local timezone (not UTC)
+  const formatLocalDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const getDateKey = (day: number) => {
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-    return date.toISOString().split('T')[0];
+    return formatLocalDate(date);
   };
 
   const getEmojiForDay = (day: number) => {
@@ -108,7 +121,7 @@ export default function CalendarPage() {
   const handleEmojiSelect = (emoji: string) => {
     if (!selectedDate || !currentTrip) return;
     
-    const dateKey = selectedDate.toISOString().split('T')[0];
+    const dateKey = formatLocalDate(selectedDate);
     const newData = { ...emojiData };
     
     if (!newData[currentTrip.id]) {
@@ -256,13 +269,13 @@ export default function CalendarPage() {
             <div className="action-row">
               <button 
                 className="action-btn expense"
-                onClick={() => navigate(`/expense?date=${selectedDate.toISOString().split('T')[0]}`)}
+                onClick={() => navigate(`/expense?date=${formatLocalDate(selectedDate)}`)}
               >
                 💰 EXPENSE
               </button>
               <button 
                 className="action-btn photo"
-                onClick={() => navigate(`/photo-memo?date=${selectedDate.toISOString().split('T')[0]}`)}
+                onClick={() => navigate(`/photo-memo?date=${formatLocalDate(selectedDate)}`)}
               >
                 📷 PHOTO
               </button>

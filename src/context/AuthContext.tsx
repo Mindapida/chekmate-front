@@ -8,7 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<void>;
-  register: (username: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -47,73 +47,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is already logged in on mount
+  // Check if user is already logged in on mount (localStorage only)
+  // Auto-login: Create default user if not exists (for testing)
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = tokenManager.getToken();
-      if (token) {
-        try {
-          const userData = await authApi.getCurrentUser();
-          setUser(userData);
-        } catch (error) {
-          console.error('Auth check failed:', error);
-          tokenManager.removeToken();
-        }
+    const token = localStorage.getItem('access_token');
+    const storedUser = localStorage.getItem('mock_user');
+    
+    if (token && storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem('mock_user');
+        localStorage.removeItem('access_token');
       }
-      setIsLoading(false);
-    };
-    checkAuth();
+    } else {
+      // Auto-create a test user for development
+      const testUser: User = {
+        id: 1,
+        username: 'testuser',
+        created_at: new Date().toISOString(),
+      };
+      localStorage.setItem('mock_user', JSON.stringify(testUser));
+      localStorage.setItem('access_token', 'test_token_auto');
+      addToRegisteredUsers(testUser);
+      setUser(testUser);
+    }
+    setIsLoading(false);
   }, []);
 
   const login = async (username: string, password: string) => {
-    try {
-      await authApi.login(username, password);
-      const userData = await authApi.getCurrentUser();
-      addToRegisteredUsers(userData);
-      setUser(userData);
-    } catch (error) {
-      // Fallback: localStorage mock login for demo
-      console.warn('Backend not available, using local storage');
-      
-      // Check if user exists
-      const existingUser = findUserByUsername(username);
-      const mockUser: User = existingUser || {
-        id: Date.now(),
-        username,
-        created_at: new Date().toISOString(),
-      };
-      
-      localStorage.setItem('mock_user', JSON.stringify(mockUser));
-      localStorage.setItem('access_token', 'mock_token_' + Date.now());
-      addToRegisteredUsers(mockUser);
-      setUser(mockUser);
-    }
+    // 바로 로그인 처리 (백엔드 없이 작동)
+    const existingUser = findUserByUsername(username);
+    const mockUser: User = existingUser || {
+      id: Date.now(),
+      username,
+      created_at: new Date().toISOString(),
+    };
+    
+    localStorage.setItem('mock_user', JSON.stringify(mockUser));
+    localStorage.setItem('access_token', 'mock_token_' + Date.now());
+    addToRegisteredUsers(mockUser);
+    setUser(mockUser);
   };
 
-  const register = async (username: string, password: string) => {
-    try {
-      await authApi.register(username, password);
-      await login(username, password);
-    } catch (error) {
-      // Fallback: localStorage mock register
-      console.warn('Backend not available, using local storage');
-      
-      // Check if username already exists
-      const existingUser = findUserByUsername(username);
-      if (existingUser) {
-        throw new Error('Username already exists');
-      }
-      
-      const mockUser: User = {
-        id: Date.now(),
-        username,
-        created_at: new Date().toISOString(),
-      };
-      localStorage.setItem('mock_user', JSON.stringify(mockUser));
-      localStorage.setItem('access_token', 'mock_token_' + Date.now());
-      addToRegisteredUsers(mockUser);
-      setUser(mockUser);
+  const register = async (username: string, email: string, password: string) => {
+    // 바로 회원가입 처리 (백엔드 없이 작동)
+    const existingUser = findUserByUsername(username);
+    if (existingUser) {
+      throw new Error('Username already exists');
     }
+    
+    const mockUser: User = {
+      id: Date.now(),
+      username,
+      created_at: new Date().toISOString(),
+    };
+    localStorage.setItem('mock_user', JSON.stringify(mockUser));
+    localStorage.setItem('access_token', 'mock_token_' + Date.now());
+    addToRegisteredUsers(mockUser);
+    setUser(mockUser);
   };
 
   const logout = () => {

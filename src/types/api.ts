@@ -10,3 +10,16 @@ export interface ExchangeRate { id: number; from_currency: string; to_currency: 
 export interface LoginResponse { access_token: string; token_type: string; }
 export interface ApiError { detail: string; }
 
+
+
+
+
+
+
+
+
+
+
+
+
+

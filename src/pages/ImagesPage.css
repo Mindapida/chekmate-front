@@ -485,3 +485,70 @@
   font-weight: 600;
   cursor: pointer;
 }
+
+/* Mobile Optimizations */
+@media (max-width: 480px) {
+  .page-header {
+    padding: 12px;
+    height: 52px;
+  }
+  
+  .page-header .logo-check,
+  .page-header .logo-text {
+    font-size: 18px;
+  }
+  
+  .toggle-btn {
+    width: 32px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  .trip-info-bar {
+    padding: 12px;
+  }
+  
+  .trip-info-bar h2 {
+    font-size: 16px;
+  }
+  
+  .trip-dates {
+    font-size: 12px;
+  }
+  
+  .date-section {
+    padding: 10px;
+  }
+  
+  .date-header h3 {
+    font-size: 14px;
+  }
+  
+  .photos-grid {
+    gap: 3px;
+  }
+  
+  .photo-item {
+    border-radius: 6px;
+  }
+  
+  .add-photo-btn {
+    right: 14px;
+    bottom: 80px;
+    width: 50px;
+    height: 50px;
+    font-size: 22px;
+  }
+  
+  .no-trip-message {
+    padding: 20px;
+  }
+  
+  .no-trip-message span {
+    font-size: 40px;
+  }
+  
+  .no-trip-message h2 {
+    font-size: 18px;
+  }
+}

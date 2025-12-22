@@ -1,15 +1,31 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './LoginPage.css';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Auto-login for testing: /login?auto=true&user=testuser
+  useEffect(() => {
+    const autoLogin = searchParams.get('auto');
+    const autoUser = searchParams.get('user') || 'testuser';
+    
+    if (autoLogin === 'true') {
+      console.log('🔑 Auto-login triggered for user:', autoUser);
+      login(autoUser, 'password').then(() => {
+        navigate('/home');
+      }).catch((err) => {
+        console.error('Auto-login failed:', err);
+      });
+    }
+  }, [searchParams, login, navigate]);
 
   const handleBack = () => navigate('/');
 

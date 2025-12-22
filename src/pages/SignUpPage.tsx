@@ -7,6 +7,7 @@ export default function SignUpPage() {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -17,7 +18,7 @@ export default function SignUpPage() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !password || !confirmPassword) {
+    if (!username || !email || !password || !confirmPassword) {
       setError('Please fill in all fields');
       return;
     }
@@ -36,7 +37,7 @@ export default function SignUpPage() {
     setError('');
     
     try {
-      await register(username, password);
+      await register(username, email, password);
       navigate('/home');
     } catch (err) {
       setError('Registration failed. Please try again.');
@@ -76,6 +77,18 @@ export default function SignUpPage() {
               placeholder="Choose a username" 
               value={username} 
               onChange={(e) => setUsername(e.target.value)} 
+              disabled={isLoading}
+              required 
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input 
+              type="email" 
+              id="email" 
+              placeholder="Enter your email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
               disabled={isLoading}
               required 
             />

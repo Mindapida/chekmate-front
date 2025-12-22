@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTrips } from '../context/TripContext';
-import BottomNav from '../components/BottomNav';
+import BottomNav, { saveLastPage } from '../components/BottomNav';
 import AddTripModal from '../components/AddTripModal';
 import './HomePage.css';
 
@@ -10,10 +10,24 @@ const TRIP_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DD
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const contentRef = useRef<HTMLDivElement>(null);
+  
+  // Save current page on mount
+  useEffect(() => {
+    saveLastPage('/home');
+  }, []);
+  
   const { user, logout } = useAuth();
   const { trips, currentTrip, setCurrentTrip, isLoading, createTrip } = useTrips();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showTripSelector, setShowTripSelector] = useState(false);
+
+  // Scroll to top on mount and when trips/currentTrip change
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTop = 0;
+    }
+  }, [trips, currentTrip]);
 
   const handleTripClick = (tripId: number) => navigate(`/trip/${tripId}`);
   const handleAddTrip = () => setIsModalOpen(true);
@@ -47,7 +61,7 @@ export default function HomePage() {
 
   return (
     <div className="home-page">
-      <div className="home-content">
+      <div className="home-content" ref={contentRef}>
         <header className="home-header">
           <div className="header-logo">
             <span className="logo-check">✓</span>

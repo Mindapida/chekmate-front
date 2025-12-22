@@ -341,3 +341,171 @@
   font-weight: 600;
   cursor: pointer;
 }
+
+/* Mobile Optimizations */
+@media (max-width: 480px) {
+  .compact-header {
+    padding: 8px 10px;
+  }
+  
+  .logo-check, .logo-text {
+    font-size: 14px;
+  }
+  
+  .trip-badge {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+  
+  .calendar-wrapper {
+    margin: 6px;
+    padding: 10px;
+  }
+  
+  .month-nav h2 {
+    font-size: 16px;
+  }
+  
+  .nav-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  .weekday-header span {
+    font-size: 10px;
+  }
+  
+  .calendar-grid .day {
+    padding: 6px 2px;
+    font-size: 13px;
+  }
+  
+  .day-number {
+    font-size: 13px;
+  }
+  
+  .expense-content {
+    padding: 10px;
+  }
+  
+  .expense-item {
+    padding: 10px;
+    gap: 10px;
+  }
+  
+  .expense-amount {
+    font-size: 14px;
+  }
+  
+  .add-expense-fab {
+    width: 50px;
+    height: 50px;
+    right: 14px;
+    bottom: 80px;
+    font-size: 22px;
+  }
+  
+  .no-trip-message {
+    padding: 20px;
+  }
+  
+  .no-trip-message span {
+    font-size: 40px;
+  }
+  
+  .no-trip-message h2 {
+    font-size: 18px;
+  }
+}
+
+/* Smaller Phone Screens (iPhone SE, etc.) */
+@media (max-width: 375px) {
+  .compact-header {
+    padding: 6px 8px;
+  }
+  
+  .logo-check, .logo-text {
+    font-size: 13px;
+  }
+  
+  .trip-badge {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+  
+  .calendar-wrapper {
+    margin: 4px;
+    padding: 8px;
+  }
+  
+  .month-nav {
+    margin-bottom: 8px;
+  }
+  
+  .month-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+  
+  .month-title {
+    font-size: 13px;
+  }
+  
+  .day-name {
+    font-size: 9px;
+    padding: 2px 0;
+  }
+  
+  .day-cell {
+    font-size: 11px;
+    min-height: 32px;
+  }
+  
+  .day-number {
+    font-size: 11px;
+  }
+  
+  .day-emoji {
+    font-size: 8px;
+  }
+  
+  .actions-section {
+    margin: 0 4px 4px;
+    padding: 10px;
+    gap: 8px;
+  }
+  
+  .selected-info {
+    font-size: 12px;
+  }
+  
+  .emoji-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+  
+  .action-btn {
+    padding: 10px;
+    font-size: 12px;
+  }
+  
+  .no-trip-message span {
+    font-size: 36px;
+  }
+  
+  .no-trip-message h2 {
+    font-size: 16px;
+  }
+  
+  .no-trip-message p {
+    font-size: 12px;
+  }
+  
+  .no-trip-message button {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+}

@@ -319,3 +319,93 @@
   margin: 0;
 }
 
+/* Mobile Optimizations */
+@media (max-width: 480px) {
+  .page-header {
+    padding: 12px;
+    height: 52px;
+  }
+  
+  .logo-check, .logo-text {
+    font-size: 18px;
+  }
+  
+  .logout-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .welcome-bar {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .current-trip-banner {
+    padding: 12px;
+    gap: 10px;
+  }
+  
+  .trip-icon-badge {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+  
+  .trip-name {
+    font-size: 14px;
+  }
+  
+  .trip-dates {
+    font-size: 11px;
+  }
+  
+  .stats-container {
+    padding: 12px;
+    gap: 12px;
+  }
+  
+  .stat-value {
+    font-size: 22px;
+  }
+  
+  .stat-label {
+    font-size: 11px;
+  }
+  
+  .section-card {
+    margin: 12px;
+    padding: 14px;
+  }
+  
+  .section-title {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  
+  .category-item {
+    padding: 10px 0;
+  }
+  
+  .cat-emoji {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .cat-name {
+    font-size: 13px;
+  }
+  
+  .cat-amount {
+    font-size: 13px;
+  }
+  
+  .progress-bar-bg {
+    height: 6px;
+  }
+  
+  .cat-percent {
+    font-size: 11px;
+  }
+}
+

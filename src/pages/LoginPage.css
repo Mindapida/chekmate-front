@@ -108,3 +108,24 @@
   cursor: not-allowed;
 }
 
+/* Mobile Optimizations */
+@media (max-width: 480px) {
+  .login-container {
+    justify-content: flex-start;
+    padding-top: 40px;
+  }
+  
+  .login-welcome h1 {
+    font-size: 22px;
+  }
+  
+  .form-group input {
+    height: 48px;
+    padding: 10px 14px;
+  }
+  
+  .login-form .btn-login {
+    height: 44px;
+  }
+}
+

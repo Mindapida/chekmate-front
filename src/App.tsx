@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TripProvider } from './context/TripContext';
+import { getLastPage } from './components/BottomNav';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
@@ -11,6 +12,7 @@ import CalendarPage from './pages/CalendarPage';
 import ExpensePage from './pages/ExpensePage';
 import PhotoMemoPage from './pages/PhotoMemoPage';
 import MyPage from './pages/MyPage';
+import { useEffect } from 'react';
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -40,7 +42,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Public Route - redirect to home if already logged in
+// Public Route - redirect to last visited page if already logged in
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   
@@ -49,16 +51,54 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
   
   if (isAuthenticated) {
-    return <Navigate to="/home" replace />;
+    // Redirect to last visited page instead of always /home
+    const lastPage = getLastPage();
+    return <Navigate to={lastPage} replace />;
   }
   
   return <>{children}</>;
+}
+
+// Auto-login route for testing - automatically logs in and redirects to home
+function AutoLoginRoute() {
+  const { login, isAuthenticated } = useAuth();
+  const [searchParams] = useSearchParams();
+  
+  useEffect(() => {
+    const autoLogin = async () => {
+      if (!isAuthenticated) {
+        const username = searchParams.get('user') || 'testuser';
+        await login(username, 'auto-login');
+      }
+    };
+    autoLogin();
+  }, [login, isAuthenticated, searchParams]);
+  
+  if (isAuthenticated) {
+    return <Navigate to="/home" replace />;
+  }
+  
+  return (
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      height: '100vh',
+      fontFamily: 'Quicksand, sans-serif'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '40px', marginBottom: '16px' }}>🔐</div>
+        <div>Auto-logging in...</div>
+      </div>
+    </div>
+  );
 }
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/auto-login" element={<AutoLoginRoute />} />
       <Route path="/login" element={
         <PublicRoute>
           <LoginPage />

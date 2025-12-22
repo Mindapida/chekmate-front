@@ -1,13 +1,19 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTrips } from '../context/TripContext';
-import BottomNav from '../components/BottomNav';
+import BottomNav, { saveLastPage } from '../components/BottomNav';
 import './MyPage.css';
 
 export default function MyPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { currentTrip, trips } = useTrips();
+
+  // Save current page on mount
+  useEffect(() => {
+    saveLastPage('/mypage');
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -149,4 +155,7 @@ export default function MyPage() {
     </div>
   );
 }
+
+
+
 

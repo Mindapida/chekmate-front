@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import './LandingPage.css';
 
 // Figma 비행기 창문 이미지
-const imgAirplaneWindow = "https://www.figma.com/api/mcp/asset/460365c9-662c-4e42-8651-9ff270d1d803";
+const imgAirplaneWindow = "https://www.figma.com/api/mcp/asset/2ec20440-1761-4f28-9fb0-60b26117817d";
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ export default function LandingPage() {
           <span className="logo-text">CHECKMATE</span>
         </div>
 
-        {/* 비행기 창문 이미지 */}
+        {/* 비행기 창문 이미지 (Figma) */}
         <div className="airplane-image">
           <img src={imgAirplaneWindow} alt="Airplane Window" />
         </div>

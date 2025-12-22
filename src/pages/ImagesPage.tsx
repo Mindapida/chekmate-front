@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
-import BottomNav from '../components/BottomNav';
+import BottomNav, { saveLastPage } from '../components/BottomNav';
 import './ImagesPage.css';
 
 interface PhotoEntry {
@@ -34,6 +34,11 @@ export default function ImagesPage() {
   const [memos, setMemos] = useState<MemoData>({});
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoEntry | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'timeline'>('timeline');
+
+  // Save current page on mount
+  useEffect(() => {
+    saveLastPage('/images');
+  }, []);
 
   useEffect(() => {
     if (!currentTrip) return;

@@ -2,6 +2,25 @@ import { useNavigate } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
 import './BottomNav.css';
 
+// Storage key for last visited page
+const LAST_PAGE_KEY = 'checkmate_last_page';
+
+// Valid main pages that can be restored
+const VALID_PAGES = ['/home', '/images', '/calendar', '/mypage'];
+
+// Save last visited page
+export const saveLastPage = (path: string) => {
+  if (VALID_PAGES.includes(path)) {
+    localStorage.setItem(LAST_PAGE_KEY, path);
+  }
+};
+
+// Get last visited page (default: /home)
+export const getLastPage = (): string => {
+  const lastPage = localStorage.getItem(LAST_PAGE_KEY);
+  return lastPage && VALID_PAGES.includes(lastPage) ? lastPage : '/home';
+};
+
 interface BottomNavProps { 
   activeTab: 'home' | 'images' | 'calendar' | 'mypage'; 
 }
@@ -22,6 +41,8 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
       alert('Please select a trip first! ✈️\n\nGo to HOME and set a current trip.');
       return;
     }
+    // Save the page user is navigating to
+    saveLastPage(tab.path);
     navigate(tab.path);
   };
 

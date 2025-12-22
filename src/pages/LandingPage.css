@@ -110,7 +110,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 10px 30px rgba(43, 127, 255, 0.3));
+  filter: drop-shadow(0 10px 30px rgba(43, 127, 255, 0.2));
 }
 
 @keyframes float {
@@ -174,5 +174,86 @@
   color: #525252;
   text-align: center;
   animation: fadeInUp 0.8s ease-out 0.8s both;
+}
+
+/* Mobile Optimizations - Real Phone Screens */
+@media (max-width: 414px) {
+  .landing-page {
+    padding: 20px 16px;
+  }
+  
+  .landing-container {
+    gap: 20px;
+    padding: 0 8px;
+  }
+  
+  .subtitle-badge {
+    padding: 10px 20px;
+  }
+  
+  .subtitle-badge span {
+    font-size: 13px;
+  }
+  
+  .logo-check {
+    font-size: 30px;
+  }
+  
+  .logo-text {
+    font-size: 28px;
+  }
+  
+  .airplane-image {
+    width: 160px;
+    height: 160px;
+    margin: 16px 0;
+  }
+  
+  .btn-login, .btn-signup {
+    height: 48px;
+    font-size: 15px;
+    border-radius: 14px;
+  }
+  
+  .tagline {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 375px) {
+  .landing-container {
+    gap: 16px;
+  }
+  
+  .subtitle-badge {
+    padding: 8px 16px;
+  }
+  
+  .subtitle-badge span {
+    font-size: 12px;
+  }
+  
+  .logo-check {
+    font-size: 26px;
+  }
+  
+  .logo-text {
+    font-size: 24px;
+  }
+  
+  .airplane-image {
+    width: 140px;
+    height: 140px;
+    margin: 12px 0;
+  }
+  
+  .btn-login, .btn-signup {
+    height: 44px;
+    font-size: 14px;
+  }
+  
+  .tagline {
+    font-size: 13px;
+  }
 }
 
