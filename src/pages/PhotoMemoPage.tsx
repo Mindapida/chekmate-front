@@ -51,7 +51,7 @@ export default function PhotoMemoPage() {
     const loadExpenses = async () => {
       setLoading(true);
       try {
-        const data = await expensesApi.getByTrip(currentTrip.id, selectedDate);
+        const data = await expensesApi.getByDate(currentTrip.id, selectedDate);
         setExpenses(data);
       } catch (error) {
         const stored = localStorage.getItem(`expenses_${currentTrip.id}_${selectedDate}`);

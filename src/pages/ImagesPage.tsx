@@ -54,7 +54,7 @@ export default function ImagesPage() {
           const [date, expenseId] = key.split('_');
           // Try to get expense info
           const expensesStored = localStorage.getItem(`${EXPENSE_STORAGE_KEY}_${currentTrip.id}_${date}`);
-          let expenseInfo;
+          let expenseInfo: { place: string; amount: number; currency: string; category: string; time: string } | undefined;
           if (expensesStored) {
             const expenses = JSON.parse(expensesStored);
             const expense = expenses.find((e: any) => e.id.toString() === expenseId);

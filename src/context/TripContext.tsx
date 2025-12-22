@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { tripsApi } from '../api';
 import { useAuth } from './AuthContext';
 import type { Trip } from '../types/api';

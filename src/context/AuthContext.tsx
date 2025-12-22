@@ -1,6 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authApi } from '../api';
-import { tokenManager } from '../api/client';
 import type { User } from '../types/api';
 
 interface AuthContextType {
@@ -75,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, _password: string) => {
     // 바로 로그인 처리 (백엔드 없이 작동)
     const existingUser = findUserByUsername(username);
     const mockUser: User = existingUser || {
@@ -90,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(mockUser);
   };
 
-  const register = async (username: string, email: string, password: string) => {
+  const register = async (username: string, _email: string, _password: string) => {
     // 바로 회원가입 처리 (백엔드 없이 작동)
     const existingUser = findUserByUsername(username);
     if (existingUser) {
