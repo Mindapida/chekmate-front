@@ -54,7 +54,7 @@ export default function ExpensePage() {
     hour: '12',
     minute: '00',
     amount: '',
-    currency: 'JPY',
+    currency: 'USD',
     place: '',
     category: '',
     paid_by: 0,
@@ -66,6 +66,10 @@ export default function ExpensePage() {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrItems, setOcrItems] = useState<OcrItem[]>([]);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+
+  // Split selection state (for inline editing)
+  const [editingSplitId, setEditingSplitId] = useState<number | null>(null);
+  const [expenseSplits, setExpenseSplits] = useState<{ [expenseId: number]: number[] }>({});
 
   // Load exchange rate - using free API or fallback
   useEffect(() => {
@@ -94,18 +98,55 @@ export default function ExpensePage() {
     const loadData = async () => {
       if (!currentTrip) return;
       setLoading(true);
+      
+      // Load expenses
       try {
-        const [expData, partData] = await Promise.all([
-          expensesApi.getByDate(currentTrip.id, selectedDate),
-          tripsApi.getParticipants(currentTrip.id),
-        ]);
+        const expData = await expensesApi.getByDate(currentTrip.id, selectedDate);
         setExpenses(expData);
-        setParticipants(partData);
       } catch (error) {
-        console.warn('Failed to load data:', error);
+        console.warn('Failed to load expenses from API:', error);
         const stored = localStorage.getItem(`expenses_${currentTrip.id}_${selectedDate}`);
         if (stored) setExpenses(JSON.parse(stored));
       }
+      
+      // Load participants - check localStorage first (where TripDetailPage saves them)
+      // Then try API as backup
+      let allParticipants: TripParticipant[] = [];
+      
+      // 1. Load from localStorage (primary source for locally added participants)
+      const storedParticipants = localStorage.getItem(`trip_participants_${currentTrip.id}`);
+      if (storedParticipants) {
+        try {
+          const parsed = JSON.parse(storedParticipants);
+          console.log('📋 Loaded participants from localStorage:', parsed);
+          // Normalize participant data - ensure 'name' field exists
+          const normalized = parsed.map((p: { id: number; name?: string; username?: string }) => ({
+            id: p.id,
+            name: p.name || p.username || `User ${p.id}`,
+            trip_id: currentTrip.id,
+          }));
+          allParticipants = normalized;
+        } catch (e) {
+          console.warn('Failed to parse localStorage participants:', e);
+        }
+      }
+      
+      // 2. Try API as additional source
+      try {
+        const partData = await tripsApi.getParticipants(currentTrip.id);
+        if (partData && partData.length > 0) {
+          // Merge with localStorage participants (avoid duplicates by ID)
+          const existingIds = new Set(allParticipants.map(p => p.id));
+          const newFromApi = partData.filter(p => !existingIds.has(p.id));
+          allParticipants = [...allParticipants, ...newFromApi];
+        }
+      } catch (error) {
+        console.warn('Failed to load participants from API:', error);
+      }
+      
+      console.log('📋 Final participants list:', allParticipants);
+      setParticipants(allParticipants);
+      
       setLoading(false);
     };
     loadData();
@@ -169,7 +210,7 @@ export default function ExpensePage() {
     }
     
     setShowAddModal(false);
-    setNewExpense({ hour: '12', minute: '00', amount: '', currency: 'JPY', place: '', category: '', paid_by: 0, split_with: [] });
+    setNewExpense({ hour: '12', minute: '00', amount: '', currency: 'USD', place: '', category: '', paid_by: 0, split_with: [] });
   };
 
   // Handle file upload for OCR - uses /ocr/create endpoint
@@ -342,6 +383,36 @@ export default function ExpensePage() {
     }));
   };
 
+  // Toggle split for existing expense (inline editing)
+  const toggleExpenseSplit = (expenseId: number, participantId: number) => {
+    setExpenseSplits(prev => {
+      const currentSplits = prev[expenseId] || [];
+      const newSplits = currentSplits.includes(participantId)
+        ? currentSplits.filter(id => id !== participantId)
+        : [...currentSplits, participantId];
+      
+      // Save to localStorage
+      if (currentTrip) {
+        const storageKey = `expense_splits_${currentTrip.id}`;
+        const allSplits = { ...prev, [expenseId]: newSplits };
+        localStorage.setItem(storageKey, JSON.stringify(allSplits));
+      }
+      
+      return { ...prev, [expenseId]: newSplits };
+    });
+  };
+
+  // Load expense splits from localStorage
+  useEffect(() => {
+    if (currentTrip) {
+      const storageKey = `expense_splits_${currentTrip.id}`;
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        setExpenseSplits(JSON.parse(stored));
+      }
+    }
+  }, [currentTrip]);
+
   // Generate hour options (00-23)
   const hourOptions = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
   // Generate minute options (00-59, step 5)
@@ -429,24 +500,78 @@ export default function ExpensePage() {
           </div>
         ) : (
           <div className="expenses-list">
-            {expenses.map((expense) => (
-              <div key={expense.id} className="expense-card">
-                <div className="expense-time">{expense.time}</div>
-                <div className="expense-category">{getCategoryEmoji(expense.category)}</div>
-                <div className="expense-details">
-                  <div className="amount-row">
-                    <span className="original">{expense.amount.toLocaleString()} {expense.currency}</span>
-                    <span className="arrow">→</span>
-                    <span className="converted">{convertToKRW(expense.amount, expense.currency).toLocaleString()} KRW</span>
+            {expenses.map((expense) => {
+              const splits = expenseSplits[expense.id] || [];
+              const isEditing = editingSplitId === expense.id;
+              
+              return (
+                <div key={expense.id} className="expense-card-wrapper">
+                  <div className="expense-card">
+                    <div className="expense-time">{expense.time}</div>
+                    <div className="expense-category">{getCategoryEmoji(expense.category)}</div>
+                    <div className="expense-details">
+                      <div className="amount-row">
+                        <span className="original">{expense.amount.toLocaleString()} {expense.currency}</span>
+                        <span className="arrow">→</span>
+                        <span className="converted">{convertToKRW(expense.amount, expense.currency).toLocaleString()} KRW</span>
+                      </div>
+                      <div className="place">{expense.place || 'No place'}</div>
+                    </div>
+                    <div 
+                      className={`payer-info ${isEditing ? 'active' : ''}`}
+                      onClick={() => setEditingSplitId(isEditing ? null : expense.id)}
+                    >
+                      <span className="payer-name">Me</span>
+                      <span className="split-count">
+                        {splits.length > 0 ? `÷${splits.length}` : '👥'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="place">{expense.place || 'No place'}</div>
+                  
+                  {/* Split Selection Dropdown */}
+                  {isEditing && (
+                    <div className="split-dropdown">
+                      <div className="split-dropdown-header">
+                        <span>Split with:</span>
+                        <button 
+                          className="close-split"
+                          onClick={() => setEditingSplitId(null)}
+                        >✕</button>
+                      </div>
+                      <div className="split-options">
+                        {/* Me option */}
+                        <label className="split-option">
+                          <input 
+                            type="checkbox"
+                            checked={splits.includes(0)}
+                            onChange={() => toggleExpenseSplit(expense.id, 0)}
+                          />
+                          <span className="option-check">{splits.includes(0) ? '✓' : ''}</span>
+                          <span className="option-name">Me</span>
+                        </label>
+                        {/* Participants */}
+                        {participants.map(p => (
+                          <label key={p.id} className="split-option">
+                            <input 
+                              type="checkbox"
+                              checked={splits.includes(p.id)}
+                              onChange={() => toggleExpenseSplit(expense.id, p.id)}
+                            />
+                            <span className="option-check">{splits.includes(p.id) ? '✓' : ''}</span>
+                            <span className="option-name">{p.name || (p as any).username || `User ${p.id}`}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {splits.length > 0 && (
+                        <div className="split-summary-inline">
+                          Each pays: {(expense.amount / splits.length).toLocaleString()} {expense.currency}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="payer-info">
-                  <span className="payer-name">Me</span>
-                  <span className="split-count">👥</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -550,7 +675,7 @@ export default function ExpensePage() {
                       className={`payer-chip ${newExpense.paid_by === p.id ? 'active' : ''}`}
                       onClick={() => setNewExpense({...newExpense, paid_by: p.id})}
                     >
-                      {p.name}
+                      {p.name || (p as any).username || `User ${p.id}`}
                     </button>
                   ))}
                 </div>
@@ -560,22 +685,34 @@ export default function ExpensePage() {
               <div className="form-section">
                 <label>Split with</label>
                 <div className="split-row">
-                  {participants.length === 0 ? (
-                    <span className="no-participants">Add participants to split</span>
-                  ) : (
-                    participants.map(p => (
-                      <label key={p.id} className="split-checkbox">
-                        <input 
-                          type="checkbox"
-                          checked={newExpense.split_with.includes(p.id)}
-                          onChange={() => toggleSplitWith(p.id)}
-                        />
-                        <span className="checkmark"></span>
-                        <span className="name">{p.name}</span>
-                      </label>
-                    ))
-                  )}
+                  {/* Me option */}
+                  <label className="split-checkbox">
+                    <input 
+                      type="checkbox"
+                      checked={newExpense.split_with.includes(0)}
+                      onChange={() => toggleSplitWith(0)}
+                    />
+                    <span className="checkmark"></span>
+                    <span className="name">Me</span>
+                  </label>
+                  {/* Other participants */}
+                  {participants.map(p => (
+                    <label key={p.id} className="split-checkbox">
+                      <input 
+                        type="checkbox"
+                        checked={newExpense.split_with.includes(p.id)}
+                        onChange={() => toggleSplitWith(p.id)}
+                      />
+                      <span className="checkmark"></span>
+                      <span className="name">{p.name || (p as any).username || `User ${p.id}`}</span>
+                    </label>
+                  ))}
                 </div>
+                {newExpense.split_with.length > 0 && (
+                  <div className="split-summary">
+                    ÷ {newExpense.split_with.length} people
+                  </div>
+                )}
               </div>
             </div>
 

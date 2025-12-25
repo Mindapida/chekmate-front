@@ -4,8 +4,8 @@ import { useTrips } from '../context/TripContext';
 import BottomNav, { saveLastPage } from '../components/BottomNav';
 import './CalendarPage.css';
 
-// Mood emoji icons: sad, heart, rain, sunny + happy, cool, party
-const MOOD_EMOJIS = ['😢', '❤️', '🌧️', '☀️', '😊', '😎', '🥳'];
+// Mood emoji icons: happy, cool, party, heart, rain, sunny, sad (기쁨, 선글라스, 축하, 하트, 비, 맑음, 슬픔)
+const MOOD_EMOJIS = ['😊', '😎', '🥳', '❤️', '🌧️', '☀️', '😢'];
 
 // Local storage key for emoji data
 const EMOJI_STORAGE_KEY = 'calendar_emojis';

@@ -296,6 +296,35 @@
   justify-content: center;
 }
 
+/* Expense Memo */
+.expense-memo {
+  padding: 0 14px 14px 14px;
+}
+
+.expense-memo-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  color: #374151;
+  resize: none;
+  outline: none;
+  box-sizing: border-box;
+  background: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.expense-memo-input:focus {
+  border-color: #2B7FFF;
+  box-shadow: 0 0 0 3px rgba(43, 127, 255, 0.1);
+}
+
+.expense-memo-input::placeholder {
+  color: #9CA3AF;
+}
+
 /* Photo Dump Grid */
 .dump-grid {
   display: grid;

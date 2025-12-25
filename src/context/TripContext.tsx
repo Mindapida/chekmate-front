@@ -1,162 +1,158 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { tripsApi } from '../api';
-import { useAuth } from './AuthContext';
 import type { Trip } from '../types/api';
+import { useAuth } from './AuthContext';
 
 interface TripContextType {
   trips: Trip[];
   currentTrip: Trip | null;
-  isLoading: boolean;
-  createTrip: (data: { name: string; startDate: string; endDate: string }) => Promise<Trip>;
-  deleteTrip: (id: number) => Promise<void>;
   setCurrentTrip: (trip: Trip | null) => void;
+  isLoading: boolean;
+  error: string | null;
+  createTrip: (tripData: { name: string; startDate: string; endDate: string }) => Promise<Trip>;
+  deleteTrip: (tripId: number) => Promise<void>;
   refreshTrips: () => Promise<void>;
 }
 
-const TripContext = createContext<TripContextType | null>(null);
+const TripContext = createContext<TripContextType | undefined>(undefined);
 
-const TRIPS_STORAGE_KEY = 'checkmate_trips';
-const CURRENT_TRIP_KEY = 'checkmate_current_trip';
+const CURRENT_TRIP_KEY = 'checkmate_current_trip_id';
 
 export function TripProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [currentTrip, setCurrentTripState] = useState<Trip | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load trips and current trip when user changes
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      loadTrips();
-      loadCurrentTrip();
+  // Set current trip and persist to localStorage
+  const setCurrentTrip = useCallback((trip: Trip | null) => {
+    setCurrentTripState(trip);
+    if (trip) {
+      localStorage.setItem(CURRENT_TRIP_KEY, String(trip.id));
     } else {
+      localStorage.removeItem(CURRENT_TRIP_KEY);
+    }
+  }, []);
+
+  // Fetch all trips
+  const fetchTrips = useCallback(async () => {
+    if (!isAuthenticated) {
       setTrips([]);
       setCurrentTripState(null);
+      return;
     }
-  }, [isAuthenticated, user]);
 
-  // Update currentTrip if trips change (e.g., trip deleted)
-  useEffect(() => {
-    if (currentTrip && !trips.find(t => t.id === currentTrip.id)) {
-      // Current trip no longer exists, clear it
-      setCurrentTripState(null);
-      if (user?.id) {
-        localStorage.removeItem(`${CURRENT_TRIP_KEY}_${user.id}`);
-      }
-    }
-  }, [trips, currentTrip, user]);
-
-  const loadCurrentTrip = () => {
-    if (!user?.id) return;
-    const stored = localStorage.getItem(`${CURRENT_TRIP_KEY}_${user.id}`);
-    if (stored) {
-      setCurrentTripState(JSON.parse(stored));
-    }
-  };
-
-  const setCurrentTrip = (trip: Trip | null) => {
-    setCurrentTripState(trip);
-    if (user?.id) {
-      if (trip) {
-        localStorage.setItem(`${CURRENT_TRIP_KEY}_${user.id}`, JSON.stringify(trip));
-      } else {
-        localStorage.removeItem(`${CURRENT_TRIP_KEY}_${user.id}`);
-      }
-    }
-  };
-
-  const loadTrips = async () => {
     setIsLoading(true);
+    setError(null);
+    
     try {
-      const data = await tripsApi.getAll();
-      setTrips(data);
-      // Sync to localStorage
-      saveToLocalStorage(data, user?.id);
-    } catch (error) {
-      console.warn('Backend not available, loading from localStorage');
-      const localTrips = loadFromLocalStorage(user?.id);
-      setTrips(localTrips);
+      const fetchedTrips = await tripsApi.getAll();
+      setTrips(fetchedTrips);
+      
+      // Restore current trip from localStorage
+      const savedTripId = localStorage.getItem(CURRENT_TRIP_KEY);
+      if (savedTripId) {
+        const savedTrip = fetchedTrips.find(t => t.id === Number(savedTripId));
+        if (savedTrip) {
+          setCurrentTripState(savedTrip);
+        } else if (fetchedTrips.length > 0) {
+          // If saved trip not found, select first trip
+          setCurrentTrip(fetchedTrips[0]);
+        }
+      } else if (fetchedTrips.length > 0) {
+        // If no saved trip, auto-select first trip
+        setCurrentTrip(fetchedTrips[0]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch trips:', err);
+      setError('Failed to load trips');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  };
+  }, [isAuthenticated, setCurrentTrip]);
 
-  const saveToLocalStorage = (data: Trip[], userId?: number) => {
-    if (!userId) return;
-    const allTrips = JSON.parse(localStorage.getItem(TRIPS_STORAGE_KEY) || '{}');
-    allTrips[userId] = data;
-    localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify(allTrips));
-  };
-
-  const loadFromLocalStorage = (userId?: number): Trip[] => {
-    if (!userId) return [];
-    const allTrips = JSON.parse(localStorage.getItem(TRIPS_STORAGE_KEY) || '{}');
-    return allTrips[userId] || [];
-  };
-
-  const createTrip = async (data: { name: string; startDate: string; endDate: string }): Promise<Trip> => {
+  // Create a new trip
+  const createTrip = useCallback(async (tripData: { name: string; startDate: string; endDate: string }): Promise<Trip> => {
+    setError(null);
+    
     try {
       const newTrip = await tripsApi.create({
-        name: data.name,
-        start_date: data.startDate,
-        end_date: data.endDate,
+        name: tripData.name,
+        start_date: tripData.startDate,
+        end_date: tripData.endDate,
       });
-      const updatedTrips = [...trips, newTrip];
-      setTrips(updatedTrips);
-      saveToLocalStorage(updatedTrips, user?.id);
+      
+      setTrips(prev => [...prev, newTrip]);
       return newTrip;
-    } catch (error) {
-      console.warn('Backend not available, saving to localStorage');
-      // Fallback: create locally
-      const newTrip: Trip = {
-        id: Date.now(),
-        name: data.name,
-        start_date: data.startDate,
-        end_date: data.endDate,
-        created_by: user?.id || 0,
-        created_at: new Date().toISOString(),
-      };
-      const updatedTrips = [...trips, newTrip];
-      setTrips(updatedTrips);
-      saveToLocalStorage(updatedTrips, user?.id);
-      return newTrip;
+    } catch (err) {
+      console.error('Failed to create trip:', err);
+      setError('Failed to create trip');
+      throw err;
     }
-  };
+  }, []);
 
-  const deleteTrip = async (id: number) => {
+  // Delete a trip
+  const deleteTrip = useCallback(async (tripId: number): Promise<void> => {
+    setError(null);
+    
     try {
-      await tripsApi.delete(id);
-    } catch (error) {
-      console.warn('Backend not available, deleting locally');
+      await tripsApi.delete(tripId);
+      setTrips(prev => prev.filter(t => t.id !== tripId));
+      
+      // If deleted trip was current, clear or select another
+      if (currentTrip?.id === tripId) {
+        const remaining = trips.filter(t => t.id !== tripId);
+        setCurrentTrip(remaining.length > 0 ? remaining[0] : null);
+      }
+    } catch (err) {
+      console.error('Failed to delete trip:', err);
+      setError('Failed to delete trip');
+      throw err;
     }
-    const updatedTrips = trips.filter(t => t.id !== id);
-    setTrips(updatedTrips);
-    saveToLocalStorage(updatedTrips, user?.id);
-  };
+  }, [currentTrip, trips, setCurrentTrip]);
 
-  const refreshTrips = async () => {
-    await loadTrips();
-  };
+  // Refresh trips
+  const refreshTrips = useCallback(async () => {
+    await fetchTrips();
+  }, [fetchTrips]);
+
+  // Fetch trips when authenticated
+  useEffect(() => {
+    fetchTrips();
+  }, [fetchTrips]);
+
+  // Clear state on logout
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setTrips([]);
+      setCurrentTripState(null);
+      localStorage.removeItem(CURRENT_TRIP_KEY);
+    }
+  }, [isAuthenticated]);
 
   return (
-    <TripContext.Provider value={{
-      trips,
-      currentTrip,
-      isLoading,
-      createTrip,
-      deleteTrip,
-      setCurrentTrip,
-      refreshTrips,
-    }}>
+    <TripContext.Provider
+      value={{
+        trips,
+        currentTrip,
+        setCurrentTrip,
+        isLoading,
+        error,
+        createTrip,
+        deleteTrip,
+        refreshTrips,
+      }}
+    >
       {children}
     </TripContext.Provider>
   );
 }
 
-export function useTrips() {
+export function useTrips(): TripContextType {
   const context = useContext(TripContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useTrips must be used within a TripProvider');
   }
   return context;
 }
-

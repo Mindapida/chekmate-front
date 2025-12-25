@@ -1,127 +1,85 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { authApi } from '../api';
+import { tokenManager } from '../api/client';
 import type { User } from '../types/api';
 
 interface AuthContextType {
   user: User | null;
-  isLoading: boolean;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
-
-// Helper to add user to registered users list
-const addToRegisteredUsers = (user: User) => {
-  const stored = localStorage.getItem('registered_users');
-  const users: { id: number; username: string }[] = stored ? JSON.parse(stored) : [];
-  
-  if (!users.some(u => u.username === user.username)) {
-    users.push({ id: user.id, username: user.username });
-    localStorage.setItem('registered_users', JSON.stringify(users));
-  }
-};
-
-// Helper to find existing user by username
-const findUserByUsername = (username: string): User | null => {
-  const stored = localStorage.getItem('registered_users');
-  if (!stored) return null;
-  
-  const users: { id: number; username: string }[] = JSON.parse(stored);
-  const found = users.find(u => u.username === username);
-  
-  if (found) {
-    return {
-      id: found.id,
-      username: found.username,
-      created_at: new Date().toISOString(),
-    };
-  }
-  return null;
-};
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is already logged in on mount (localStorage only)
-  // Auto-login: Create default user if not exists (for testing)
+  // Check if user is already logged in (has valid token)
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    const storedUser = localStorage.getItem('mock_user');
-    
-    if (token && storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        localStorage.removeItem('mock_user');
-        localStorage.removeItem('access_token');
+    const checkAuth = async () => {
+      const token = tokenManager.getToken();
+      if (token) {
+        try {
+          const currentUser = await authApi.getCurrentUser();
+          setUser(currentUser);
+        } catch (error) {
+          console.error('Failed to get current user:', error);
+          tokenManager.removeToken();
+        }
       }
-    } else {
-      // Auto-create a test user for development
-      const testUser: User = {
-        id: 1,
-        username: 'testuser',
-        created_at: new Date().toISOString(),
-      };
-      localStorage.setItem('mock_user', JSON.stringify(testUser));
-      localStorage.setItem('access_token', 'test_token_auto');
-      addToRegisteredUsers(testUser);
-      setUser(testUser);
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+    
+    checkAuth();
   }, []);
 
-  const login = async (username: string, _password: string) => {
-    // 바로 로그인 처리 (백엔드 없이 작동)
-    const existingUser = findUserByUsername(username);
-    const mockUser: User = existingUser || {
-      id: Date.now(),
-      username,
-      created_at: new Date().toISOString(),
-    };
+  const login = useCallback(async (username: string, password: string) => {
+    const response = await authApi.login(username, password);
+    // Token is already set by authApi.login
     
-    localStorage.setItem('mock_user', JSON.stringify(mockUser));
-    localStorage.setItem('access_token', 'mock_token_' + Date.now());
-    addToRegisteredUsers(mockUser);
-    setUser(mockUser);
-  };
-
-  const register = async (username: string, _email: string, _password: string) => {
-    // 바로 회원가입 처리 (백엔드 없이 작동)
-    const existingUser = findUserByUsername(username);
-    if (existingUser) {
-      throw new Error('Username already exists');
+    // Get user info after login
+    try {
+      const currentUser = await authApi.getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      // If we can't get user info, create a minimal user object
+      console.warn('Could not fetch user details:', error);
+      setUser({
+        id: 0,
+        username,
+        created_at: new Date().toISOString()
+      });
     }
-    
-    const mockUser: User = {
-      id: Date.now(),
-      username,
-      created_at: new Date().toISOString(),
-    };
-    localStorage.setItem('mock_user', JSON.stringify(mockUser));
-    localStorage.setItem('access_token', 'mock_token_' + Date.now());
-    addToRegisteredUsers(mockUser);
-    setUser(mockUser);
-  };
+  }, []);
 
-  const logout = () => {
+  const register = useCallback(async (username: string, email: string, password: string) => {
+    // First register the user
+    await authApi.register(username, email, password);
+    
+    // Then automatically log them in
+    await login(username, password);
+  }, [login]);
+
+  const logout = useCallback(() => {
     authApi.logout();
-    localStorage.removeItem('mock_user');
     setUser(null);
+  }, []);
+
+  const value: AuthContextType = {
+    user,
+    isAuthenticated: !!user,
+    isLoading,
+    login,
+    register,
+    logout,
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      isLoading,
-      isAuthenticated: !!user,
-      login,
-      register,
-      logout,
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
@@ -129,9 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }
-

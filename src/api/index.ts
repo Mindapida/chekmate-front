@@ -70,11 +70,118 @@ export const authApi = {
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Register failed:', errorText);
-      throw new Error('Register failed');
+      console.error('❌ Register failed:', response.status, errorText);
+      
+      // Check for duplicate username/email errors
+      const lowerError = errorText.toLowerCase();
+      
+      // Try to parse as JSON first
+      try {
+        const errorJson = JSON.parse(errorText);
+        const detail = (errorJson.detail || '').toLowerCase();
+        
+        if (detail.includes('username') && (detail.includes('already') || detail.includes('exists') || detail.includes('taken') || detail.includes('duplicate'))) {
+          throw new Error('USERNAME_EXISTS');
+        }
+        if (detail.includes('email') && (detail.includes('already') || detail.includes('exists') || detail.includes('taken') || detail.includes('duplicate'))) {
+          throw new Error('EMAIL_EXISTS');
+        }
+      } catch (e) {
+        if (e instanceof Error && (e.message === 'USERNAME_EXISTS' || e.message === 'EMAIL_EXISTS')) {
+          throw e;
+        }
+      }
+      
+      // Check raw text for common error patterns
+      if (lowerError.includes('username') && (lowerError.includes('already') || lowerError.includes('exists') || lowerError.includes('taken') || lowerError.includes('duplicate'))) {
+        throw new Error('USERNAME_EXISTS');
+      }
+      if (lowerError.includes('email') && (lowerError.includes('already') || lowerError.includes('exists') || lowerError.includes('taken') || lowerError.includes('duplicate'))) {
+        throw new Error('EMAIL_EXISTS');
+      }
+      
+      // 409 Conflict usually means duplicate
+      if (response.status === 409) {
+        throw new Error('USERNAME_EXISTS');
+      }
+      
+      // 400 Bad Request with specific messages
+      if (response.status === 400) {
+        if (lowerError.includes('username')) throw new Error('USERNAME_EXISTS');
+        if (lowerError.includes('email')) throw new Error('EMAIL_EXISTS');
+      }
+      
+      throw new Error('REGISTER_FAILED');
     }
     
     return response.json();
+  },
+  
+  // Check if username is available by attempting a lightweight check
+  // This tries multiple strategies to verify username availability
+  checkUsername: async (username: string): Promise<{ available: boolean; message?: string }> => {
+    console.log('🔍 Checking username availability:', username);
+    
+    // Strategy 1: Try dedicated check-username endpoint
+    try {
+      const response = await fetch(`${API_BASE}/auth/check-username`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+      
+      console.log('📡 Check username response:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        return { available: data.available !== false, message: data.message };
+      }
+      
+      if (response.status === 409 || response.status === 400) {
+        return { available: false, message: 'Username is already taken' };
+      }
+    } catch (e) {
+      console.log('Check-username endpoint not available, trying alternative...');
+    }
+    
+    // Strategy 2: Try GET endpoint
+    try {
+      const response = await fetch(`${API_BASE}/auth/check-username?username=${encodeURIComponent(username)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return { available: data.available !== false };
+      }
+      
+      if (response.status === 409 || response.status === 400) {
+        return { available: false, message: 'Username is already taken' };
+      }
+    } catch (e) {
+      console.log('GET check-username not available');
+    }
+    
+    // Strategy 3: Try /users/exists endpoint
+    try {
+      const response = await fetch(`${API_BASE}/users/exists?username=${encodeURIComponent(username)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return { available: !data.exists };
+      }
+    } catch (e) {
+      console.log('Users exists endpoint not available');
+    }
+    
+    // If no endpoint works, return unknown status
+    // The actual check will happen during registration
+    console.log('⚠️ No username check endpoint available - will verify on registration');
+    return { available: true, message: 'Will be verified on registration' };
   },
   logout: () => tokenManager.removeToken(),
   getCurrentUser: async (): Promise<User> => apiClient.get('/users/me'),

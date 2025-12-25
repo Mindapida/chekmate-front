@@ -106,11 +106,16 @@
   animation: fadeInUp 1s ease-out 0.4s both, float 4s ease-in-out infinite;
 }
 
-.airplane-image img {
+.airplane-image img,
+.airplane-image svg {
   width: 100%;
   height: 100%;
   object-fit: contain;
   filter: drop-shadow(0 10px 30px rgba(43, 127, 255, 0.2));
+}
+
+.airplane-window-svg {
+  filter: drop-shadow(0 10px 30px rgba(43, 127, 255, 0.25));
 }
 
 @keyframes float {

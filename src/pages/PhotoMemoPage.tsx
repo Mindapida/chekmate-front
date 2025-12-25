@@ -17,9 +17,14 @@ interface MemoData {
   [dateKey: string]: string; // daily memo
 }
 
+interface ExpenseMemoData {
+  [expenseKey: string]: string; // memo per expense
+}
+
 const PHOTO_STORAGE_KEY = 'expense_photos';
 const DUMP_STORAGE_KEY = 'photo_dump';
 const MEMO_STORAGE_KEY = 'daily_memo';
+const EXPENSE_MEMO_STORAGE_KEY = 'expense_memos';
 
 export default function PhotoMemoPage() {
   const navigate = useNavigate();
@@ -36,6 +41,7 @@ export default function PhotoMemoPage() {
   const [photoData, setPhotoData] = useState<PhotoData>({});
   const [photoDump, setPhotoDump] = useState<PhotoDumpData>({});
   const [memoData, setMemoData] = useState<MemoData>({});
+  const [expenseMemos, setExpenseMemos] = useState<ExpenseMemoData>({});
   const [dailyMemo, setDailyMemo] = useState('');
   
   // UI states
@@ -75,6 +81,12 @@ export default function PhotoMemoPage() {
       const memos = JSON.parse(storedMemos);
       setMemoData(memos);
       setDailyMemo(memos[selectedDate] || '');
+    }
+    
+    // Load expense memos
+    const storedExpenseMemos = localStorage.getItem(`${EXPENSE_MEMO_STORAGE_KEY}_${currentTrip.id}`);
+    if (storedExpenseMemos) {
+      setExpenseMemos(JSON.parse(storedExpenseMemos));
     }
   }, [currentTrip, selectedDate]);
 
@@ -156,6 +168,15 @@ export default function PhotoMemoPage() {
   // Memo handling
   const handleMemoChange = (value: string) => {
     setDailyMemo(value);
+  };
+
+  // Expense memo handling
+  const handleExpenseMemoChange = (expenseId: number, value: string) => {
+    if (!currentTrip) return;
+    const expenseKey = `${selectedDate}_${expenseId}`;
+    const newMemos = { ...expenseMemos, [expenseKey]: value };
+    setExpenseMemos(newMemos);
+    localStorage.setItem(`${EXPENSE_MEMO_STORAGE_KEY}_${currentTrip.id}`, JSON.stringify(newMemos));
   };
 
   const handleSave = () => {
@@ -263,6 +284,7 @@ export default function PhotoMemoPage() {
               {expenses.map(expense => {
                 const expenseKey = `${selectedDate}_${expense.id}`;
                 const photos = photoData[expenseKey] || [];
+                const expenseMemo = expenseMemos[expenseKey] || '';
                 
                 return (
                   <div key={expense.id} className="expense-item">
@@ -283,6 +305,7 @@ export default function PhotoMemoPage() {
                         + 📷
                       </button>
                     </div>
+                    {/* Expense Photos */}
                     {photos.length > 0 && (
                       <div className="expense-photos">
                         {photos.map((photo, idx) => (
@@ -296,6 +319,16 @@ export default function PhotoMemoPage() {
                         ))}
                       </div>
                     )}
+                    {/* Expense Memo */}
+                    <div className="expense-memo">
+                      <textarea
+                        className="expense-memo-input"
+                        placeholder="Add a note for this expense..."
+                        value={expenseMemo}
+                        onChange={(e) => handleExpenseMemoChange(expense.id, e.target.value)}
+                        rows={2}
+                      />
+                    </div>
                   </div>
                 );
               })}

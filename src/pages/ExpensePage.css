@@ -625,6 +625,157 @@
   color: #374151;
 }
 
+.split-summary {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #EBF4FF 0%, #DBEAFE 100%);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2B7FFF;
+  text-align: center;
+}
+
+/* Expense Card Wrapper for dropdown */
+.expense-card-wrapper {
+  position: relative;
+}
+
+/* Payer info clickable */
+.payer-info {
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 8px;
+  padding: 4px 8px;
+  margin: -4px -8px;
+}
+
+.payer-info:hover {
+  background: rgba(43, 127, 255, 0.1);
+}
+
+.payer-info.active {
+  background: rgba(43, 127, 255, 0.15);
+}
+
+.split-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2B7FFF;
+}
+
+/* Split Dropdown */
+.split-dropdown {
+  background: white;
+  border: 2px solid #2B7FFF;
+  border-radius: 12px;
+  margin-top: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 16px rgba(43, 127, 255, 0.2);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.split-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.close-split {
+  background: #F3F4F6;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #6B7280;
+  cursor: pointer;
+}
+
+.close-split:hover {
+  background: #E5E7EB;
+}
+
+.split-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.split-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #F9FAFB;
+  border: 2px solid #E5E7EB;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.split-option:hover {
+  border-color: #2B7FFF;
+  background: #EBF4FF;
+}
+
+.split-option input {
+  display: none;
+}
+
+.split-option input:checked + .option-check {
+  background: #2B7FFF;
+  color: white;
+}
+
+.option-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #E5E7EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.option-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.split-summary-inline {
+  margin-top: 12px;
+  padding: 10px;
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400E;
+  text-align: center;
+}
+
 /* OCR Modal Specific */
 .image-preview {
   width: 100%;
