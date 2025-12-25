@@ -401,12 +401,16 @@ export default function TripDetailPage() {
         <div className="section">
           <div className="section-header">
             <h2>Participants</h2>
-            <button className="add-participant-btn" onClick={() => setIsModalOpen(true)}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              Add Participant
-            </button>
+            {!isTripEnded ? (
+              <button className="add-participant-btn" onClick={() => setIsModalOpen(true)}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                Add Participant
+              </button>
+            ) : (
+              <span className="trip-ended-badge">여행 종료</span>
+            )}
           </div>
 
           {participants.length === 0 ? (
@@ -415,15 +419,17 @@ export default function TripDetailPage() {
             <div className="participants-list">
               {participants.map(participant => (
                 <div key={participant.id} className="participant-chip">
-                  <span className="participant-name">{participant.name}</span>
-                  <button 
-                    className="remove-btn"
-                    onClick={() => handleRemoveParticipant(participant.id)}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                      <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
-                  </button>
+                  <span className="participant-name">{participant.name || participant.username}</span>
+                  {!isTripEnded && (
+                    <button 
+                      className="remove-btn"
+                      onClick={() => handleRemoveParticipant(participant.id)}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -471,29 +477,33 @@ export default function TripDetailPage() {
               
               {/* Confirmation Section */}
               <div className="confirmation-section">
-                <h4>정산 동의</h4>
+                <h4>정산 동의 현황</h4>
                 <p className="confirm-desc">모든 참가자가 동의하면 정산이 완료됩니다</p>
                 
-                {/* Participant confirmation status */}
-                <div className="confirmation-list">
+                {/* Participant avatars with confirmation status */}
+                <div className="participant-avatars">
                   {/* Me */}
-                  <div className={`confirm-item ${myConfirmed ? 'confirmed' : 'pending'}`}>
-                    <span className="confirm-name">나</span>
-                    <span className={`confirm-status ${myConfirmed ? 'confirmed' : 'pending'}`}>
-                      {myConfirmed ? '✓ 동의함' : '⏳ 대기중'}
-                    </span>
+                  <div className={`avatar-item ${myConfirmed ? 'confirmed' : 'pending'}`}>
+                    <div className="avatar-circle">
+                      <span className="avatar-name">나</span>
+                      {myConfirmed && <span className="check-mark">✓</span>}
+                    </div>
+                    <span className="avatar-label">나</span>
                   </div>
                   
                   {/* Other participants */}
                   {participants.map(p => (
                     <div 
                       key={p.id} 
-                      className={`confirm-item ${confirmations[p.id] ? 'confirmed' : 'pending'}`}
+                      className={`avatar-item ${confirmations[p.id] ? 'confirmed' : 'pending'}`}
                     >
-                      <span className="confirm-name">{p.name || p.username}</span>
-                      <span className={`confirm-status ${confirmations[p.id] ? 'confirmed' : 'pending'}`}>
-                        {confirmations[p.id] ? '✓ 동의함' : '⏳ 대기중'}
-                      </span>
+                      <div className="avatar-circle">
+                        <span className="avatar-name">
+                          {(p.name || p.username || '?').charAt(0).toUpperCase()}
+                        </span>
+                        {confirmations[p.id] && <span className="check-mark">✓</span>}
+                      </div>
+                      <span className="avatar-label">{p.name || p.username}</span>
                     </div>
                   ))}
                 </div>
