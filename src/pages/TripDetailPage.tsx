@@ -547,12 +547,74 @@ export default function TripDetailPage() {
             <div className="settlement-card ready">
               <span className="settlement-icon">✅</span>
               <p>Trip has ended! Ready to settle up.</p>
+              
+              {/* Show participant confirmation status even before calculation */}
+              {participants.length > 0 && (
+                <div className="confirmation-section">
+                  <h4>정산 동의 현황</h4>
+                  <p className="confirm-desc">정산 계산 전 모든 참가자의 동의가 필요합니다</p>
+                  
+                  {/* Participant avatars with confirmation status */}
+                  <div className="participant-avatars">
+                    {/* Me */}
+                    <div className={`avatar-item ${myConfirmed ? 'confirmed' : 'pending'}`}>
+                      <div className="avatar-circle">
+                        <span className="avatar-name">나</span>
+                        {myConfirmed && <span className="check-mark">✓</span>}
+                      </div>
+                      <span className="avatar-label">나</span>
+                    </div>
+                    
+                    {/* Other participants */}
+                    {participants.map(p => (
+                      <div 
+                        key={p.id} 
+                        className={`avatar-item ${confirmations[p.id] ? 'confirmed' : 'pending'}`}
+                      >
+                        <div className="avatar-circle">
+                          <span className="avatar-name">
+                            {(p.name || p.username || '?').charAt(0).toUpperCase()}
+                          </span>
+                          {confirmations[p.id] && <span className="check-mark">✓</span>}
+                        </div>
+                        <span className="avatar-label">{p.name || p.username}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Confirmation buttons */}
+                  <div className="confirm-actions">
+                    {!myConfirmed ? (
+                      <button 
+                        className="confirm-btn agree"
+                        onClick={handleConfirmSettlement}
+                      >
+                        ✓ 정산에 동의합니다
+                      </button>
+                    ) : (
+                      <button 
+                        className="confirm-btn agreed"
+                        disabled
+                      >
+                        ✓ 동의 완료
+                      </button>
+                    )}
+                  </div>
+                  
+                  {!allConfirmed && (
+                    <p className="waiting-msg">
+                      {participants.filter(p => !confirmations[p.id]).length + (myConfirmed ? 0 : 1)}명의 동의를 기다리는 중...
+                    </p>
+                  )}
+                </div>
+              )}
+              
               <button 
                 className="settle-btn"
                 onClick={handleCalculateSettlement}
-                disabled={settlementLoading || participants.length === 0}
+                disabled={settlementLoading || participants.length === 0 || !allConfirmed}
               >
-                {settlementLoading ? 'Calculating...' : 'Calculate Settlement'}
+                {settlementLoading ? 'Calculating...' : allConfirmed ? 'Calculate Settlement' : '모든 참가자 동의 필요'}
               </button>
               {participants.length === 0 && (
                 <p className="warning">Add participants to calculate settlement</p>
