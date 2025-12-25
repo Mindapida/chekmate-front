@@ -165,14 +165,52 @@
 .settlement-card {
   background: #F9FAFB;
   border-radius: 12px;
-  padding: 20px;
+  padding: 24px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.settlement-card.pending {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+}
+
+.settlement-card.ready {
+  background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+}
+
+.settlement-card.complete {
+  background: linear-gradient(135deg, #D1FAE5 0%, #86EFAC 100%);
+}
+
+.settlement-card.with-settlements {
+  background: #F9FAFB;
+  text-align: left;
+  align-items: stretch;
+}
+
+.settlement-icon {
+  font-size: 32px;
 }
 
 .settlement-card p {
-  color: #6B7280;
+  color: #374151;
   font-size: 14px;
-  margin: 0 0 16px 0;
+  margin: 0;
+}
+
+.settlement-card .end-date {
+  font-size: 12px;
+  color: #92400E;
+  font-weight: 600;
+}
+
+.settlement-card .warning {
+  font-size: 12px;
+  color: #EF4444;
+  margin-top: 8px;
 }
 
 .settle-btn {
@@ -185,12 +223,204 @@
   font-weight: 600;
   color: #9CA3AF;
   cursor: not-allowed;
+  transition: all 0.2s;
 }
 
 .settle-btn:not(:disabled) {
   background: #2B7FFF;
   color: white;
   cursor: pointer;
+}
+
+.settle-btn:not(:disabled):hover {
+  background: #1D6FE8;
+  transform: translateY(-2px);
+}
+
+/* Settlement List */
+.settlement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settlement-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #E5E7EB;
+}
+
+.settlement-item .from-user {
+  font-weight: 600;
+  color: #EF4444;
+}
+
+.settlement-item .arrow {
+  color: #9CA3AF;
+}
+
+.settlement-item .to-user {
+  font-weight: 600;
+  color: #10B981;
+}
+
+.settlement-item .amount {
+  margin-left: auto;
+  font-weight: 700;
+  color: #374151;
+}
+
+/* Confirmation Section */
+.confirmation-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #E5E7EB;
+}
+
+.confirmation-section h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.confirm-desc {
+  font-size: 13px;
+  color: #6B7280;
+  margin: 0 0 16px 0;
+}
+
+.confirmation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.confirm-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.confirm-item.confirmed {
+  background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+  border: 2px solid #10B981;
+}
+
+.confirm-item.pending {
+  background: #FFF7ED;
+  border: 2px solid #F97316;
+}
+
+.confirm-name {
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+}
+
+.confirm-status {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.confirm-status.confirmed {
+  color: #059669;
+}
+
+.confirm-status.pending {
+  color: #EA580C;
+}
+
+.confirm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.confirm-btn {
+  width: 100%;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.confirm-btn.agree {
+  background: linear-gradient(135deg, #2B7FFF 0%, #1D6FE8 100%);
+  color: white;
+}
+
+.confirm-btn.agree:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(43, 127, 255, 0.3);
+}
+
+.confirm-btn.agreed {
+  background: #D1FAE5;
+  color: #059669;
+  cursor: default;
+}
+
+.confirm-btn.complete {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.confirm-btn.complete:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+}
+
+.waiting-msg {
+  text-align: center;
+  font-size: 13px;
+  color: #9CA3AF;
+  margin: 12px 0 0 0;
+  font-style: italic;
+}
+
+/* Total Spending */
+.total-spending {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: linear-gradient(135deg, #EBF4FF 0%, #DBEAFE 100%);
+  border-radius: 12px;
+  margin-top: 16px;
+}
+
+.spending-label {
+  font-size: 14px;
+  color: #1E40AF;
+}
+
+.spending-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1E40AF;
 }
 
 /* Stats Grid */

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTrips } from '../context/TripContext';
@@ -7,6 +7,45 @@ import AddTripModal from '../components/AddTripModal';
 import './HomePage.css';
 
 const TRIP_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+
+// Helper to get trip stats from localStorage
+const getTripStats = (tripId: number, startDate: string, endDate: string) => {
+  let expenseCount = 0;
+  let photoCount = 0;
+  
+  // Count expenses
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().split('T')[0];
+    const stored = localStorage.getItem(`expenses_${tripId}_${dateStr}`);
+    if (stored) {
+      expenseCount += JSON.parse(stored).length;
+    }
+  }
+  
+  // Count photos
+  const expensePhotos = localStorage.getItem(`expense_photos_${tripId}`);
+  if (expensePhotos) {
+    const photoData = JSON.parse(expensePhotos);
+    Object.values(photoData).forEach((arr: any) => {
+      photoCount += arr.length;
+    });
+  }
+  const dumpPhotos = localStorage.getItem(`photo_dump_${tripId}`);
+  if (dumpPhotos) {
+    const dumpData = JSON.parse(dumpPhotos);
+    Object.values(dumpData).forEach((arr: any) => {
+      photoCount += arr.length;
+    });
+  }
+  
+  // Count participants
+  const participants = localStorage.getItem(`trip_participants_${tripId}`);
+  const participantCount = participants ? JSON.parse(participants).length : 0;
+  
+  return { expenseCount, photoCount, participantCount };
+};
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -21,6 +60,20 @@ export default function HomePage() {
   const { trips, currentTrip, setCurrentTrip, isLoading, createTrip } = useTrips();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showTripSelector, setShowTripSelector] = useState(false);
+  const [tripStats, setTripStats] = useState<{ [tripId: number]: { expenseCount: number; photoCount: number; participantCount: number } }>({});
+
+  // Load stats for all trips
+  const loadAllTripStats = useCallback(() => {
+    const stats: { [tripId: number]: { expenseCount: number; photoCount: number; participantCount: number } } = {};
+    trips.forEach(trip => {
+      stats[trip.id] = getTripStats(trip.id, trip.start_date, trip.end_date);
+    });
+    setTripStats(stats);
+  }, [trips]);
+
+  useEffect(() => {
+    loadAllTripStats();
+  }, [loadAllTripStats]);
 
   // Scroll to top on mount and when trips/currentTrip change
   useEffect(() => {
@@ -149,30 +202,38 @@ export default function HomePage() {
             </div>
           ) : (
             <>
-              {trips.map((trip, index) => (
-                <div 
-                  key={trip.id} 
-                  className={`trip-card ${currentTrip?.id === trip.id ? 'current' : ''}`} 
-                  onClick={() => handleTripClick(trip.id)}
-                >
-                  <div className="trip-icon" style={{ backgroundColor: getTripColor(index) }}>✈️</div>
-                  <div className="trip-info">
-                    <div className="trip-name">
-                      <span>📍</span>
-                      <span>{trip.name}</span>
-                      {currentTrip?.id === trip.id && <span className="current-badge">Current</span>}
-                    </div>
-                    <div className="trip-dates"><span>📅</span><span>{formatDateRange(trip.start_date, trip.end_date)}</span></div>
-                  </div>
-                  <button 
-                    className={`set-current-btn ${currentTrip?.id === trip.id ? 'active' : ''}`}
-                    onClick={(e) => handleSetCurrentTrip(e, trip)}
-                    title={currentTrip?.id === trip.id ? 'Current trip' : 'Set as current'}
+              {trips.map((trip, index) => {
+                const stats = tripStats[trip.id] || { expenseCount: 0, photoCount: 0, participantCount: 0 };
+                return (
+                  <div 
+                    key={trip.id} 
+                    className={`trip-card ${currentTrip?.id === trip.id ? 'current' : ''}`} 
+                    onClick={() => handleTripClick(trip.id)}
                   >
-                    {currentTrip?.id === trip.id ? '★' : '☆'}
-                  </button>
-                </div>
-              ))}
+                    <div className="trip-icon" style={{ backgroundColor: getTripColor(index) }}>✈️</div>
+                    <div className="trip-info">
+                      <div className="trip-name">
+                        <span>📍</span>
+                        <span>{trip.name}</span>
+                        {currentTrip?.id === trip.id && <span className="current-badge">Current</span>}
+                      </div>
+                      <div className="trip-dates"><span>📅</span><span>{formatDateRange(trip.start_date, trip.end_date)}</span></div>
+                      <div className="trip-stats-mini">
+                        <span className="stat-mini">👥 {stats.participantCount}</span>
+                        <span className="stat-mini">💰 {stats.expenseCount}</span>
+                        <span className="stat-mini">📷 {stats.photoCount}</span>
+                      </div>
+                    </div>
+                    <button 
+                      className={`set-current-btn ${currentTrip?.id === trip.id ? 'active' : ''}`}
+                      onClick={(e) => handleSetCurrentTrip(e, trip)}
+                      title={currentTrip?.id === trip.id ? 'Current trip' : 'Set as current'}
+                    >
+                      {currentTrip?.id === trip.id ? '★' : '☆'}
+                    </button>
+                  </div>
+                );
+              })}
               <button className="add-trip-btn" onClick={handleAddTrip}>
                 <span>+</span>
                 <span>New Adventure</span>

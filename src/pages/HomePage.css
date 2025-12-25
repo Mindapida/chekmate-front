@@ -202,6 +202,23 @@
 .trip-name { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; color: #0a0a0a; text-transform: uppercase; flex-wrap: wrap; }
 .trip-dates { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #0a0a0a; }
 
+/* Mini Stats in Trip Card */
+.trip-stats-mini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.stat-mini {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* Current Badge */
 .current-badge {
   font-size: 10px;
