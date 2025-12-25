@@ -1,90 +1,110 @@
 import { useNavigate } from 'react-router-dom';
 import './LandingPage.css';
 
-// 비행기 창문 SVG 컴포넌트 (Figma 디자인)
+// 비행기 창문 SVG 컴포넌트 (Figma 디자인 정확히 구현)
 const AirplaneWindowIcon = () => (
   <svg 
-    width="180" 
-    height="220" 
-    viewBox="0 0 180 220" 
+    width="200" 
+    height="260" 
+    viewBox="0 0 200 260" 
     fill="none" 
     xmlns="http://www.w3.org/2000/svg"
     className="airplane-window-svg"
   >
-    {/* 바깥쪽 창문 프레임 - 둥근 사각형 */}
+    {/* 바깥쪽 창문 프레임 - 회색 둥근 사각형 */}
     <rect 
-      x="20" 
+      x="25" 
       y="20" 
-      width="140" 
-      height="180" 
-      rx="70" 
-      ry="70"
-      fill="white"
-      stroke="#3d4152"
-      strokeWidth="6"
+      width="150" 
+      height="220" 
+      rx="75" 
+      ry="75"
+      fill="#c4c9cf"
+      stroke="#2d3436"
+      strokeWidth="5"
     />
     
-    {/* 안쪽 창문 영역 클리핑 */}
+    {/* 안쪽 창문 영역 - 흰색 테두리 */}
+    <rect 
+      x="40" 
+      y="35" 
+      width="120" 
+      height="190" 
+      rx="60" 
+      ry="60"
+      fill="white"
+      stroke="#2d3436"
+      strokeWidth="4"
+    />
+    
+    {/* 클리핑 영역 정의 */}
     <defs>
-      <clipPath id="windowClip">
-        <rect x="35" y="35" width="110" height="150" rx="55" ry="55"/>
+      <clipPath id="innerWindowClip">
+        <rect x="48" y="43" width="104" height="174" rx="52" ry="52"/>
       </clipPath>
     </defs>
     
-    {/* 안쪽 창문 배경 - 하늘색 */}
+    {/* 안쪽 하늘색 배경 */}
     <rect 
-      x="35" 
-      y="35" 
-      width="110" 
-      height="150" 
-      rx="55" 
-      ry="55"
-      fill="#a8e6f0"
-      stroke="#3d4152"
-      strokeWidth="4"
+      x="48" 
+      y="43" 
+      width="104" 
+      height="174" 
+      rx="52" 
+      ry="52"
+      fill="#b8e4f0"
     />
     
-    {/* 창문 블라인드/쉐이드 (상단) */}
-    <g clipPath="url(#windowClip)">
-      <rect x="35" y="35" width="110" height="50" fill="#b8c4ce"/>
-      <rect x="35" y="82" width="110" height="6" fill="#9aa8b4"/>
-      {/* 블라인드 손잡이 */}
-      <ellipse cx="90" cy="60" rx="8" ry="4" fill="#6b7a8a"/>
-      <circle cx="90" cy="60" r="3" fill="#4a5568"/>
-      <circle cx="80" cy="68" r="2" fill="#4a5568"/>
+    {/* 창문 블라인드/쉐이드 (상단 회색 부분) */}
+    <g clipPath="url(#innerWindowClip)">
+      {/* 블라인드 메인 */}
+      <rect x="48" y="43" width="104" height="75" fill="#a0aab4"/>
+      {/* 블라인드 하단 라인 */}
+      <rect x="48" y="113" width="104" height="8" fill="#8892a0"/>
+      {/* 블라인드 손잡이 영역 */}
+      <ellipse cx="100" cy="75" rx="12" ry="6" fill="#7a8490"/>
+      {/* 작은 점들 */}
+      <circle cx="100" cy="75" r="4" fill="#4a5058"/>
+      <circle cx="85" cy="90" r="3" fill="#4a5058"/>
     </g>
     
     {/* 구름 */}
-    <g clipPath="url(#windowClip)">
-      {/* 메인 구름 */}
-      <ellipse cx="70" cy="145" rx="35" ry="18" fill="white"/>
-      <ellipse cx="95" cy="140" rx="28" ry="16" fill="white"/>
-      <ellipse cx="115" cy="148" rx="25" ry="14" fill="white"/>
-      <ellipse cx="55" cy="150" rx="20" ry="12" fill="white"/>
-      <ellipse cx="85" cy="155" rx="30" ry="15" fill="white"/>
+    <g clipPath="url(#innerWindowClip)">
+      {/* 흰 구름 배경 */}
+      <ellipse cx="75" cy="185" rx="40" ry="25" fill="white"/>
+      <ellipse cx="100" cy="175" rx="35" ry="22" fill="white"/>
+      <ellipse cx="130" cy="188" rx="32" ry="20" fill="white"/>
+      <ellipse cx="60" cy="195" rx="25" ry="18" fill="white"/>
+      <ellipse cx="105" cy="200" rx="45" ry="25" fill="white"/>
       
-      {/* 구름 테두리 */}
+      {/* 구름 테두리 라인 */}
       <path 
-        d="M35 155 Q50 130 75 132 Q95 125 115 135 Q135 130 145 150" 
-        stroke="#3d4152" 
-        strokeWidth="3" 
+        d="M48 200 Q60 165 85 168 Q105 155 125 165 Q145 158 152 185" 
+        stroke="#2d3436" 
+        strokeWidth="4" 
         fill="none"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </g>
     
-    {/* 안쪽 창문 테두리 (다시 그리기) */}
+    {/* 안쪽 창문 테두리 다시 그리기 */}
     <rect 
-      x="35" 
-      y="35" 
-      width="110" 
-      height="150" 
-      rx="55" 
-      ry="55"
+      x="48" 
+      y="43" 
+      width="104" 
+      height="174" 
+      rx="52" 
+      ry="52"
       fill="none"
-      stroke="#3d4152"
+      stroke="#2d3436"
       strokeWidth="4"
     />
+    
+    {/* 오른쪽 작은 점들 (리벳) */}
+    <circle cx="165" cy="100" r="4" fill="#2d3436"/>
+    <circle cx="165" cy="130" r="4" fill="#2d3436"/>
+    <circle cx="165" cy="160" r="4" fill="#2d3436"/>
   </svg>
 );
 
