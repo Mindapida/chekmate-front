@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { authApi } from '../api';
 import { tokenManager } from '../api/client';
 import type { User } from '../types/api';
@@ -38,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
-    const response = await authApi.login(username, password);
+    await authApi.login(username, password);
     // Token is already set by authApi.login
     
     // Get user info after login

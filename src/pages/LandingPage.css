@@ -83,6 +83,19 @@
   background-clip: text;
 }
 
+.logo-airplane {
+  font-size: 18px;
+  color: #2b7fff;
+  margin-left: 4px;
+  animation: fly 3s ease-in-out infinite;
+  display: inline-block;
+}
+
+@keyframes fly {
+  0%, 100% { transform: translateY(0) rotate(-30deg); }
+  50% { transform: translateY(-5px) rotate(-30deg); }
+}
+
 @keyframes fadeInDown {
   from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
