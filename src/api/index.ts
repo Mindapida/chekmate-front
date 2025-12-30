@@ -1,7 +1,7 @@
 import { apiClient, tokenManager } from './client';
 import type { User, Trip, TripParticipant, Expense, DiaryEntry, Budget, Settlement, LoginResponse } from '../types/api';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 // Retry helper for 503 errors (server overload)
 const fetchWithRetry = async (
