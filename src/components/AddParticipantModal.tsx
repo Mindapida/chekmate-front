@@ -1,87 +1,32 @@
-import { useState, useEffect, useCallback } from 'react';
-import { usersApi } from '../api';
+import { useState, useEffect } from 'react';
 import './AddParticipantModal.css';
-
-interface User {
-  id: number;
-  username: string;
-}
 
 interface AddParticipantModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (user: User) => void;
-  existingParticipants: number[];
+  onAdd: (username: string) => Promise<void>;
 }
 
 export default function AddParticipantModal({ 
   isOpen, 
   onClose, 
-  onAdd, 
-  existingParticipants 
+  onAdd,
 }: AddParticipantModalProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [users, setUsers] = useState<User[]>([]);
+  const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  // Load all users when modal opens
+  // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setIsClosing(false);
-      setSearchTerm('');
+      setUsername('');
       setError('');
-      loadAllUsers();
+      setSuccess('');
     }
   }, [isOpen]);
-
-  const loadAllUsers = async () => {
-    setIsLoading(true);
-    setError('');
-    try {
-      const allUsers = await usersApi.getAll();
-      setUsers(allUsers);
-    } catch (err) {
-      console.error('Failed to load users:', err);
-      setError('Failed to load users. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Debounced search
-  const searchUsers = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      loadAllUsers();
-      return;
-    }
-    
-    setIsLoading(true);
-    setError('');
-    try {
-      const results = await usersApi.search(query);
-      setUsers(results);
-    } catch (err) {
-      console.error('Search failed:', err);
-      setError('Search failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchTerm) {
-        searchUsers(searchTerm);
-      } else if (isOpen) {
-        loadAllUsers();
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchTerm, searchUsers, isOpen]);
 
   if (!isOpen && !isClosing) return null;
 
@@ -89,20 +34,58 @@ export default function AddParticipantModal({
     setIsClosing(true);
     setTimeout(() => {
       setIsClosing(false);
-      setSearchTerm('');
+      setUsername('');
+      setError('');
+      setSuccess('');
       onClose();
     }, 300);
   };
 
-  const handleSelect = (user: User) => {
-    onAdd(user);
-    handleClose();
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const trimmedUsername = username.trim();
+    
+    if (!trimmedUsername) {
+      setError('Please enter a username');
+      return;
+    }
 
-  // Filter out existing participants
-  const filteredUsers = users.filter(user => 
-    !existingParticipants.includes(user.id)
-  );
+    if (trimmedUsername.length < 3) {
+      setError('Username must be at least 3 characters');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await onAdd(trimmedUsername);
+      setSuccess(`${trimmedUsername} has been added!`);
+      setUsername('');
+      
+      // Close modal after short delay
+      setTimeout(() => {
+        handleClose();
+      }, 1000);
+    } catch (err) {
+      console.error('Failed to add participant:', err);
+      if (err instanceof Error) {
+        if (err.message.includes('404') || err.message.includes('not found')) {
+          setError(`User "${trimmedUsername}" not found. Make sure the username is correct.`);
+        } else if (err.message.includes('already') || err.message.includes('exists')) {
+          setError(`${trimmedUsername} is already a participant.`);
+        } else {
+          setError(err.message || 'Failed to add participant. Please try again.');
+        }
+      } else {
+        setError('Failed to add participant. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className={`participant-modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
@@ -110,72 +93,83 @@ export default function AddParticipantModal({
         {/* Header */}
         <div className="participant-modal-header">
           <h2>Add Participant</h2>
-          <button className="close-btn" onClick={handleClose}>
+          <button className="close-btn" onClick={handleClose} type="button">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M15 5L5 15M5 5L15 15" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
         </div>
 
-        {/* Search */}
-        <div className="search-container">
-          <svg className="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M19 19L14.65 14.65" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <input
-            type="text"
-            placeholder="Search by username..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            autoFocus
-          />
-          {isLoading && <div className="search-spinner" />}
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="search-error">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="#EF4444" strokeWidth="1.5"/>
-              <path d="M8 5V8M8 11H8.01" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-            <span>{error}</span>
-            <button onClick={loadAllUsers} className="retry-btn">Retry</button>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="participant-form">
+          {/* Username Input */}
+          <div className="input-container">
+            <label htmlFor="username-input">Username</label>
+            <div className="input-wrapper">
+              <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M10 10C12.2091 10 14 8.20914 14 6C14 3.79086 12.2091 2 10 2C7.79086 2 6 3.79086 6 6C6 8.20914 7.79086 10 10 10Z" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M17.0001 18C17.0001 14.6863 13.866 12 10.0001 12C6.13413 12 3.00006 14.6863 3.00006 18" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <input
+                id="username-input"
+                type="text"
+                placeholder="Enter username to add"
+                value={username}
+                onChange={e => {
+                  setUsername(e.target.value);
+                  setError('');
+                  setSuccess('');
+                }}
+                disabled={isLoading}
+                autoFocus
+                autoComplete="off"
+              />
+            </div>
           </div>
-        )}
 
-        {/* User List */}
-        <div className="user-list">
-          {isLoading && users.length === 0 ? (
-            <div className="loading-users">
-              <div className="loading-spinner" />
-              <p>Loading users...</p>
+          {/* Error Message */}
+          {error && (
+            <div className="message error-message">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="#EF4444" strokeWidth="1.5"/>
+                <path d="M8 5V8M8 11H8.01" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              <span>{error}</span>
             </div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="no-users">
-              <span>👤</span>
-              <p>{searchTerm ? 'No users found' : 'No available users'}</p>
-              <small>{searchTerm ? 'Try a different search term' : 'All registered users are already participants'}</small>
-            </div>
-          ) : (
-            filteredUsers.map(user => (
-              <button
-                key={user.id}
-                className="user-item"
-                onClick={() => handleSelect(user)}
-              >
-                <div className="user-avatar">
-                  {user.username.charAt(0).toUpperCase()}
-                </div>
-                <span className="user-name">{user.username}</span>
-                <svg className="add-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M10 4V16M4 10H16" stroke="#2B7FFF" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              </button>
-            ))
           )}
-        </div>
+
+          {/* Success Message */}
+          {success && (
+            <div className="message success-message">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="#22C55E" strokeWidth="1.5"/>
+                <path d="M5.5 8L7 9.5L10.5 6" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>{success}</span>
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button 
+            type="submit" 
+            className="submit-btn"
+            disabled={isLoading || !username.trim()}
+          >
+            {isLoading ? (
+              <>
+                <span className="btn-spinner" />
+                Adding...
+              </>
+            ) : (
+              <>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M10 4V16M4 10H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                Add Participant
+              </>
+            )}
+          </button>
+        </form>
 
         {/* Info */}
         <div className="modal-info">
@@ -183,7 +177,7 @@ export default function AddParticipantModal({
             <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="#9CA3AF" strokeWidth="1.5"/>
             <path d="M8 5V8M8 11H8.01" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
-          <span>Search and add registered users as trip participants</span>
+          <span>Enter the exact username of a registered user to add them</span>
         </div>
       </div>
     </div>

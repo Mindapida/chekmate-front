@@ -193,7 +193,18 @@ export const tripsApi = {
   create: async (data: { name: string; start_date: string; end_date: string }): Promise<Trip> => apiClient.post('/trips', data),
   delete: async (id: number): Promise<void> => apiClient.delete(`/trips/${id}`),
   getParticipants: async (tripId: number): Promise<TripParticipant[]> => apiClient.get(`/trips/${tripId}/participants`),
-  addParticipant: async (tripId: number, name: string): Promise<TripParticipant> => apiClient.post(`/trips/${tripId}/participants`, { name }),
+  // Add participant by username (backend searches registered users)
+  addParticipant: async (tripId: number, username: string): Promise<{ message: string }> => {
+    console.log('👥 Adding participant:', { tripId, username });
+    try {
+      const result = await apiClient.post<{ message: string }>(`/trips/${tripId}/participants`, { username });
+      console.log('✅ Participant added:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to add participant:', error);
+      throw error;
+    }
+  },
 };
 
 // Expense creation payload (different from Expense type - no date, has participant_ids)
@@ -257,46 +268,6 @@ export const fxApi = {
     const params = new URLSearchParams({ from_currency: from, to_currency: to });
     if (date) params.append('date', date);
     return apiClient.get(`/fx/rate?${params.toString()}`);
-  },
-};
-
-// Users API - Search registered users
-export const usersApi = {
-  // Search users by username
-  search: async (query: string): Promise<User[]> => {
-    console.log('🔍 Searching users:', query);
-    try {
-      const users = await apiClient.get<User[]>(`/users/search?q=${encodeURIComponent(query)}`);
-      console.log('✅ Found users:', users);
-      return users;
-    } catch (error) {
-      console.error('❌ User search failed:', error);
-      // Return empty array on error
-      return [];
-    }
-  },
-  
-  // Get all users (for listing)
-  getAll: async (): Promise<User[]> => {
-    console.log('📋 Fetching all users');
-    try {
-      const users = await apiClient.get<User[]>('/users');
-      console.log('✅ Fetched users:', users.length);
-      return users;
-    } catch (error) {
-      console.error('❌ Failed to fetch users:', error);
-      return [];
-    }
-  },
-  
-  // Get user by ID
-  getById: async (id: number): Promise<User | null> => {
-    try {
-      return await apiClient.get<User>(`/users/${id}`);
-    } catch (error) {
-      console.error('❌ Failed to fetch user:', error);
-      return null;
-    }
   },
 };
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
-import { settlementApi } from '../api';
+import { settlementApi, tripsApi } from '../api';
 import AddParticipantModal from '../components/AddParticipantModal';
 import './TripDetailPage.css';
 
@@ -59,11 +59,8 @@ export default function TripDetailPage() {
   const loadTripData = useCallback(() => {
     if (!trip) return;
 
-    // Load participants
-    const storedParticipants = localStorage.getItem(`trip_participants_${trip.id}`);
-    if (storedParticipants) {
-      setParticipants(JSON.parse(storedParticipants));
-    }
+    // Load participants from API
+    loadParticipantsFromApi();
 
     // Load expenses count and total
     let totalExpenses = 0;
@@ -103,7 +100,7 @@ export default function TripDetailPage() {
     
     // Load settlement confirmations
     loadConfirmations();
-  }, [trip]);
+  }, [trip, loadParticipantsFromApi, loadConfirmations]);
   
   // Load settlement confirmations from server/storage
   const loadConfirmations = useCallback(async () => {
@@ -245,22 +242,45 @@ export default function TripDetailPage() {
     navigate('/home');
   };
 
-  const handleAddParticipant = (user: { id: number; username: string }) => {
-    const newParticipant: Participant = {
-      id: user.id,
-      name: user.username,
-      username: user.username,
-    };
+  // Add participant by username via API
+  const handleAddParticipant = async (username: string): Promise<void> => {
+    if (!trip) throw new Error('No trip selected');
     
-    // Check if already added
-    if (participants.some(p => p.id === user.id)) {
-      return;
-    }
+    console.log('👥 Adding participant:', username);
     
-    const updated = [...participants, newParticipant];
-    setParticipants(updated);
-    localStorage.setItem(`trip_participants_${trip.id}`, JSON.stringify(updated));
+    // Call backend API to add participant
+    await tripsApi.addParticipant(trip.id, username);
+    
+    // Reload participants from API
+    await loadParticipantsFromApi();
   };
+  
+  // Load participants from backend API
+  const loadParticipantsFromApi = useCallback(async () => {
+    if (!trip) return;
+    
+    try {
+      const apiParticipants = await tripsApi.getParticipants(trip.id);
+      console.log('📋 Loaded participants from API:', apiParticipants);
+      
+      const mapped: Participant[] = apiParticipants.map(p => ({
+        id: p.id,
+        name: p.username,
+        username: p.username,
+      }));
+      
+      setParticipants(mapped);
+      // Also update localStorage as backup
+      localStorage.setItem(`trip_participants_${trip.id}`, JSON.stringify(mapped));
+    } catch (error) {
+      console.error('Failed to load participants from API, using localStorage:', error);
+      // Fallback to localStorage
+      const storedParticipants = localStorage.getItem(`trip_participants_${trip.id}`);
+      if (storedParticipants) {
+        setParticipants(JSON.parse(storedParticipants));
+      }
+    }
+  }, [trip]);
 
   const handleRemoveParticipant = (participantId: number) => {
     const updated = participants.filter(p => p.id !== participantId);
@@ -652,7 +672,6 @@ export default function TripDetailPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddParticipant}
-        existingParticipants={participants.map(p => p.id)}
       />
     </div>
   );
