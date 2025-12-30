@@ -260,6 +260,46 @@ export const fxApi = {
   },
 };
 
+// Users API - Search registered users
+export const usersApi = {
+  // Search users by username
+  search: async (query: string): Promise<User[]> => {
+    console.log('🔍 Searching users:', query);
+    try {
+      const users = await apiClient.get<User[]>(`/users/search?q=${encodeURIComponent(query)}`);
+      console.log('✅ Found users:', users);
+      return users;
+    } catch (error) {
+      console.error('❌ User search failed:', error);
+      // Return empty array on error
+      return [];
+    }
+  },
+  
+  // Get all users (for listing)
+  getAll: async (): Promise<User[]> => {
+    console.log('📋 Fetching all users');
+    try {
+      const users = await apiClient.get<User[]>('/users');
+      console.log('✅ Fetched users:', users.length);
+      return users;
+    } catch (error) {
+      console.error('❌ Failed to fetch users:', error);
+      return [];
+    }
+  },
+  
+  // Get user by ID
+  getById: async (id: number): Promise<User | null> => {
+    try {
+      return await apiClient.get<User>(`/users/${id}`);
+    } catch (error) {
+      console.error('❌ Failed to fetch user:', error);
+      return null;
+    }
+  },
+};
+
 export const ocrApi = {
   // Preview OCR - returns parsed items without creating
   parseReceipt: async (tripId: number, date: string, file: File): Promise<{ amount: number; currency: string; description: string; date: string | null }[]> => {

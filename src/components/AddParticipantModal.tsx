@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { usersApi } from '../api';
 import './AddParticipantModal.css';
 
 interface User {
@@ -20,48 +21,67 @@ export default function AddParticipantModal({
   existingParticipants 
 }: AddParticipantModalProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [error, setError] = useState('');
 
+  // Load all users when modal opens
   useEffect(() => {
     if (isOpen) {
       setIsClosing(false);
-      loadRegisteredUsers();
+      setSearchTerm('');
+      setError('');
+      loadAllUsers();
     }
   }, [isOpen]);
 
-  const loadRegisteredUsers = () => {
-    // Load registered users from localStorage
-    // In production, this would be an API call
-    const stored = localStorage.getItem('registered_users');
-    if (stored) {
-      setRegisteredUsers(JSON.parse(stored));
-    } else {
-      // Initialize with current user if no users exist
-      const mockUser = localStorage.getItem('mock_user');
-      if (mockUser) {
-        const user = JSON.parse(mockUser);
-        const users = [{ id: user.id, username: user.username }];
-        localStorage.setItem('registered_users', JSON.stringify(users));
-        setRegisteredUsers(users);
-      }
+  const loadAllUsers = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const allUsers = await usersApi.getAll();
+      setUsers(allUsers);
+    } catch (err) {
+      console.error('Failed to load users:', err);
+      setError('Failed to load users. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Also add current user to registered users when they sign up
-  useEffect(() => {
-    const mockUser = localStorage.getItem('mock_user');
-    if (mockUser) {
-      const user = JSON.parse(mockUser);
-      const stored = localStorage.getItem('registered_users');
-      const users: User[] = stored ? JSON.parse(stored) : [];
-      
-      if (!users.some(u => u.id === user.id)) {
-        users.push({ id: user.id, username: user.username });
-        localStorage.setItem('registered_users', JSON.stringify(users));
-      }
+  // Debounced search
+  const searchUsers = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      loadAllUsers();
+      return;
+    }
+    
+    setIsLoading(true);
+    setError('');
+    try {
+      const results = await usersApi.search(query);
+      setUsers(results);
+    } catch (err) {
+      console.error('Search failed:', err);
+      setError('Search failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   }, []);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm) {
+        searchUsers(searchTerm);
+      } else if (isOpen) {
+        loadAllUsers();
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, searchUsers, isOpen]);
 
   if (!isOpen && !isClosing) return null;
 
@@ -79,8 +99,8 @@ export default function AddParticipantModal({
     handleClose();
   };
 
-  const filteredUsers = registeredUsers.filter(user => 
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
+  // Filter out existing participants
+  const filteredUsers = users.filter(user => 
     !existingParticipants.includes(user.id)
   );
 
@@ -105,20 +125,38 @@ export default function AddParticipantModal({
           </svg>
           <input
             type="text"
-            placeholder="Search registered users..."
+            placeholder="Search by username..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             autoFocus
           />
+          {isLoading && <div className="search-spinner" />}
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="search-error">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="#EF4444" strokeWidth="1.5"/>
+              <path d="M8 5V8M8 11H8.01" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <span>{error}</span>
+            <button onClick={loadAllUsers} className="retry-btn">Retry</button>
+          </div>
+        )}
 
         {/* User List */}
         <div className="user-list">
-          {filteredUsers.length === 0 ? (
+          {isLoading && users.length === 0 ? (
+            <div className="loading-users">
+              <div className="loading-spinner" />
+              <p>Loading users...</p>
+            </div>
+          ) : filteredUsers.length === 0 ? (
             <div className="no-users">
               <span>👤</span>
-              <p>No users found</p>
-              <small>Only registered users can be added</small>
+              <p>{searchTerm ? 'No users found' : 'No available users'}</p>
+              <small>{searchTerm ? 'Try a different search term' : 'All registered users are already participants'}</small>
             </div>
           ) : (
             filteredUsers.map(user => (
@@ -145,27 +183,9 @@ export default function AddParticipantModal({
             <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="#9CA3AF" strokeWidth="1.5"/>
             <path d="M8 5V8M8 11H8.01" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
-          <span>Only users who have signed up can be added as participants</span>
+          <span>Search and add registered users as trip participants</span>
         </div>
       </div>
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
