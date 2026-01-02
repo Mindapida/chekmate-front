@@ -535,6 +535,136 @@ export const diaryApi = {
   },
 };
 
+// === Photo Comments API (stored via diary memo system) ===
+// Comments are stored in the diary entry's memo field as JSON with a special prefix
+
+interface PhotoComment {
+  id: string;
+  photoId: number;
+  text: string;
+  author: string;
+  userId: number;
+  timestamp: string;
+}
+
+interface CommentsData {
+  __type: 'photo_comments';
+  comments: { [photoId: string]: PhotoComment[] };
+}
+
+const COMMENTS_PREFIX = '<!-- COMMENTS:';
+const COMMENTS_SUFFIX = ' -->';
+const COMMENTS_DATE = '9999-12-31'; // Special date for storing comments
+
+// Helper to parse comments from memo
+const parseCommentsFromMemo = (memo: string | null): CommentsData | null => {
+  if (!memo) return null;
+  
+  const startIdx = memo.indexOf(COMMENTS_PREFIX);
+  if (startIdx === -1) return null;
+  
+  const endIdx = memo.indexOf(COMMENTS_SUFFIX, startIdx);
+  if (endIdx === -1) return null;
+  
+  try {
+    const jsonStr = memo.substring(startIdx + COMMENTS_PREFIX.length, endIdx);
+    return JSON.parse(jsonStr);
+  } catch {
+    return null;
+  }
+};
+
+// Helper to serialize comments to memo format
+const serializeCommentsToMemo = (data: CommentsData): string => {
+  return `${COMMENTS_PREFIX}${JSON.stringify(data)}${COMMENTS_SUFFIX}`;
+};
+
+export const commentsApi = {
+  // Get all comments for a trip
+  getComments: async (tripId: number): Promise<{ [photoId: string]: PhotoComment[] }> => {
+    console.log('💬 Getting comments for trip:', tripId);
+    try {
+      const entries = await diaryApi.getEntriesForDate(tripId, COMMENTS_DATE);
+      
+      // Look for comments in all entries
+      for (const entry of entries) {
+        const data = parseCommentsFromMemo(entry.memo);
+        if (data && data.__type === 'photo_comments') {
+          console.log('✅ Comments loaded:', Object.keys(data.comments).length, 'photos');
+          return data.comments;
+        }
+      }
+      
+      return {};
+    } catch (error) {
+      console.error('❌ Failed to get comments:', error);
+      return {};
+    }
+  },
+  
+  // Add a comment to a photo
+  addComment: async (
+    tripId: number, 
+    photoId: number, 
+    text: string, 
+    author: string, 
+    userId: number
+  ): Promise<PhotoComment> => {
+    console.log('💬 Adding comment:', { tripId, photoId, author });
+    
+    // Get existing comments
+    const existingComments = await commentsApi.getComments(tripId);
+    
+    // Create new comment
+    const newComment: PhotoComment = {
+      id: `${Date.now()}_${userId}`,
+      photoId,
+      text,
+      author,
+      userId,
+      timestamp: new Date().toISOString(),
+    };
+    
+    // Add to existing comments
+    const photoKey = String(photoId);
+    if (!existingComments[photoKey]) {
+      existingComments[photoKey] = [];
+    }
+    existingComments[photoKey].push(newComment);
+    
+    // Save back to backend
+    const commentsData: CommentsData = {
+      __type: 'photo_comments',
+      comments: existingComments,
+    };
+    
+    await diaryApi.setDailyMemo(tripId, COMMENTS_DATE, serializeCommentsToMemo(commentsData));
+    console.log('✅ Comment added');
+    
+    return newComment;
+  },
+  
+  // Delete a comment
+  deleteComment: async (tripId: number, photoId: number, commentId: string): Promise<void> => {
+    console.log('🗑️ Deleting comment:', { tripId, photoId, commentId });
+    
+    const existingComments = await commentsApi.getComments(tripId);
+    const photoKey = String(photoId);
+    
+    if (existingComments[photoKey]) {
+      existingComments[photoKey] = existingComments[photoKey].filter(c => c.id !== commentId);
+      
+      const commentsData: CommentsData = {
+        __type: 'photo_comments',
+        comments: existingComments,
+      };
+      
+      await diaryApi.setDailyMemo(tripId, COMMENTS_DATE, serializeCommentsToMemo(commentsData));
+      console.log('✅ Comment deleted');
+    }
+  },
+};
+
 export const budgetApi = {
   get: async (tripId: number): Promise<Budget> => apiClient.get(`/trips/${tripId}/budget`),
   set: async (tripId: number, amount: number, currency: string): Promise<Budget> => apiClient.post(`/trips/${tripId}/budget`, { amount, currency }),

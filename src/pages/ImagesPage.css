@@ -640,6 +640,16 @@
   flex: 1;
 }
 
+.comments-shared-badge {
+  background: linear-gradient(135deg, #4ECDC4 0%, #45B7D1 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+
 .comments-count {
   font-size: 10px;
   font-weight: 600;
@@ -661,13 +671,20 @@
 
 .no-comments {
   text-align: center;
-  padding: 12px;
+  padding: 16px 12px;
   color: #9CA3AF;
 }
 
 .no-comments p {
-  font-size: 12px;
+  font-size: 13px;
   margin: 0;
+}
+
+.no-comments small {
+  font-size: 11px;
+  color: #4ECDC4;
+  display: block;
+  margin-top: 4px;
 }
 
 /* Comment Bubbles - Chat Style */

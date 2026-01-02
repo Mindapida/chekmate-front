@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
 import { useAuth } from '../context/AuthContext';
-import { diaryApi, expensesApi } from '../api';
+import { diaryApi, expensesApi, commentsApi } from '../api';
 import BottomNav, { saveLastPage } from '../components/BottomNav';
 import './ImagesPage.css';
 
@@ -49,17 +49,16 @@ interface PhotoEntry {
 
 interface Comment {
   id: string;
+  photoId: number;
   text: string;
   author: string;
+  userId: number;
   timestamp: string;
-  isMe: boolean;
 }
 
 interface CommentData {
   [photoId: string]: Comment[];
 }
-
-const COMMENTS_STORAGE_KEY = 'photo_comments';
 
 export default function ImagesPage() {
   const navigate = useNavigate();
@@ -160,10 +159,13 @@ export default function ImagesPage() {
       setPhotos(allPhotos);
       setMemos(allMemos);
       
-      // Load comments from localStorage (comments are still local for now)
-      const commentsData = localStorage.getItem(`${COMMENTS_STORAGE_KEY}_${currentTrip.id}`);
-      if (commentsData) {
-        setComments(JSON.parse(commentsData));
+      // Load comments from backend (shared among all participants!)
+      try {
+        const sharedComments = await commentsApi.getComments(currentTrip.id);
+        setComments(sharedComments);
+        console.log('💬 Loaded shared comments');
+      } catch (error) {
+        console.error('Failed to load comments:', error);
       }
       
     } catch (error) {
@@ -197,27 +199,40 @@ export default function ImagesPage() {
     return categories[category?.toLowerCase()] || '📸';
   };
 
-  // Add a new comment to a photo
-  const handleAddComment = () => {
-    if (!selectedPhoto || !newComment.trim() || !currentTrip || !user) return;
+  // Add a new comment to a photo (saved to backend, shared with all participants)
+  const [addingComment, setAddingComment] = useState(false);
+  
+  const handleAddComment = async () => {
+    if (!selectedPhoto || !newComment.trim() || !currentTrip || !user || addingComment) return;
 
-    const comment: Comment = {
-      id: Date.now().toString(),
-      text: newComment.trim(),
-      author: user.username,
-      timestamp: new Date().toISOString(),
-      isMe: true,
-    };
+    setAddingComment(true);
+    try {
+      // Add comment via API (shared with all participants!)
+      const newCommentObj = await commentsApi.addComment(
+        currentTrip.id,
+        selectedPhoto.photoId,
+        newComment.trim(),
+        user.username,
+        user.id
+      );
 
-    const photoComments = comments[selectedPhoto.id] || [];
-    const updatedComments = {
-      ...comments,
-      [selectedPhoto.id]: [...photoComments, comment],
-    };
+      // Update local state
+      const photoKey = String(selectedPhoto.photoId);
+      const photoComments = comments[photoKey] || [];
+      const updatedComments = {
+        ...comments,
+        [photoKey]: [...photoComments, newCommentObj],
+      };
 
-    setComments(updatedComments);
-    localStorage.setItem(`${COMMENTS_STORAGE_KEY}_${currentTrip.id}`, JSON.stringify(updatedComments));
-    setNewComment('');
+      setComments(updatedComments);
+      setNewComment('');
+      console.log('✅ Comment added and shared');
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+      alert('Failed to add comment. Please try again.');
+    } finally {
+      setAddingComment(false);
+    }
   };
 
   // Format timestamp for comments
@@ -458,24 +473,26 @@ export default function ImagesPage() {
               )}
             </div>
 
-            {/* Chat-like Comments Section - directly below photo */}
+            {/* Chat-like Comments Section - shared with all participants */}
             <div className="comments-section">
               <div className="comments-header">
                 <span className="comments-icon">💬</span>
                 <span className="comments-title">Comments</span>
-                <span className="comments-count">{(comments[selectedPhoto.id] || []).length}</span>
+                <span className="comments-count">{(comments[String(selectedPhoto.photoId)] || []).length}</span>
+                <span className="comments-shared-badge">👥 Shared</span>
               </div>
 
               <div className="comments-list">
-                {(comments[selectedPhoto.id] || []).length === 0 ? (
+                {(comments[String(selectedPhoto.photoId)] || []).length === 0 ? (
                   <div className="no-comments">
                     <p>💭 첫 댓글을 남겨보세요!</p>
+                    <small>모든 참가자가 볼 수 있어요</small>
                   </div>
                 ) : (
-                  (comments[selectedPhoto.id] || []).map((comment) => (
+                  (comments[String(selectedPhoto.photoId)] || []).map((comment) => (
                     <div 
                       key={comment.id} 
-                      className={`comment-bubble ${comment.author === user?.username ? 'my-comment' : 'other-comment'}`}
+                      className={`comment-bubble ${comment.userId === user?.id ? 'my-comment' : 'other-comment'}`}
                     >
                       <div className="comment-header">
                         <span className="comment-author">{comment.author}</span>
@@ -491,17 +508,18 @@ export default function ImagesPage() {
                 <input
                   type="text"
                   className="comment-input"
-                  placeholder="댓글을 입력하세요..."
+                  placeholder="댓글을 입력하세요... (모든 참가자에게 공유)"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
+                  disabled={addingComment}
                 />
                 <button 
                   className="send-comment-btn"
                   onClick={handleAddComment}
-                  disabled={!newComment.trim()}
+                  disabled={!newComment.trim() || addingComment}
                 >
-                  ➤
+                  {addingComment ? '...' : '➤'}
                 </button>
               </div>
             </div>
