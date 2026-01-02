@@ -64,7 +64,9 @@ export default function AddParticipantModal({
     setHasSearched(true);
 
     try {
+      console.log('🔍 Searching for user:', searchTerm.trim());
       const user = await usersApi.getByUsername(searchTerm.trim());
+      console.log('📋 Search result:', user);
       
       if (user) {
         // Check if already added
@@ -76,11 +78,12 @@ export default function AddParticipantModal({
           setError('');
         }
       } else {
-        setError(`User "${searchTerm}" not found. Make sure they have signed up.`);
+        setError(`User "${searchTerm}" not found. Check: 1) Exact username (case-sensitive) 2) User has signed up`);
       }
-    } catch (err) {
-      console.error('Failed to search user:', err);
-      setError('Failed to search. Please try again.');
+    } catch (err: unknown) {
+      console.error('❌ Search error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Search failed: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
