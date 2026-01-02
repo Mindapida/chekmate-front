@@ -209,27 +209,31 @@ export const tripsApi = {
 
 // Trip Invitations - Track pending trip invitations
 const SEEN_TRIPS_KEY = 'seen_trip_ids';
-const PENDING_INVITES_KEY = 'pending_trip_invites';
 
 export const invitationsApi = {
   // Get trips user hasn't seen yet (new invitations)
   getNewInvitations: async (): Promise<Trip[]> => {
     try {
+      console.log('🔔 Fetching all trips to check for new invitations...');
       const allTrips = await tripsApi.getAll();
+      console.log('🔔 Total trips:', allTrips.length, allTrips.map(t => ({ id: t.id, name: t.name, created_by: t.created_by })));
+      
       const seenTripIds = JSON.parse(localStorage.getItem(SEEN_TRIPS_KEY) || '[]') as number[];
+      console.log('🔔 Already seen trip IDs:', seenTripIds);
       
       // Filter trips that user hasn't seen
       const newTrips = allTrips.filter(trip => !seenTripIds.includes(trip.id));
-      console.log('🔔 New trip invitations:', newTrips.length);
+      console.log('🔔 New (unseen) trips:', newTrips.length);
       return newTrips;
     } catch (error) {
-      console.error('Failed to get invitations:', error);
+      console.error('❌ Failed to get invitations:', error);
       return [];
     }
   },
   
   // Mark trip as seen (acknowledged)
   markAsSeen: (tripId: number) => {
+    console.log('✅ Marking trip as seen:', tripId);
     const seenTripIds = JSON.parse(localStorage.getItem(SEEN_TRIPS_KEY) || '[]') as number[];
     if (!seenTripIds.includes(tripId)) {
       seenTripIds.push(tripId);
@@ -239,6 +243,7 @@ export const invitationsApi = {
   
   // Mark all trips as seen
   markAllAsSeen: (tripIds: number[]) => {
+    console.log('✅ Marking all trips as seen:', tripIds);
     const seenTripIds = JSON.parse(localStorage.getItem(SEEN_TRIPS_KEY) || '[]') as number[];
     const updated = [...new Set([...seenTripIds, ...tripIds])];
     localStorage.setItem(SEEN_TRIPS_KEY, JSON.stringify(updated));
@@ -246,6 +251,7 @@ export const invitationsApi = {
   
   // Clear seen trips (for testing)
   clearSeen: () => {
+    console.log('🗑️ Clearing seen trips');
     localStorage.removeItem(SEEN_TRIPS_KEY);
   },
 };

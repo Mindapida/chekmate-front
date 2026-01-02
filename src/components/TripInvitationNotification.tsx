@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { invitationsApi, tripsApi } from '../api';
+import { useAuth } from '../context/AuthContext';
+import { invitationsApi } from '../api';
 import type { Trip } from '../types/api';
 import './TripInvitationNotification.css';
 
@@ -10,22 +11,28 @@ interface TripInvitationNotificationProps {
 
 export default function TripInvitationNotification({ onTripsUpdated }: TripInvitationNotificationProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [invitations, setInvitations] = useState<Trip[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Load new invitations
+  // Load new invitations (only trips where user is NOT the creator)
   const loadInvitations = useCallback(async () => {
+    if (!user) return;
+    
     setIsLoading(true);
     try {
       const newTrips = await invitationsApi.getNewInvitations();
-      setInvitations(newTrips);
+      // Filter out trips created by the current user - only show invitations
+      const invitedTrips = newTrips.filter(trip => trip.created_by !== user.id);
+      console.log('🔔 New invitations for', user.username, ':', invitedTrips.length);
+      setInvitations(invitedTrips);
     } catch (error) {
       console.error('Failed to load invitations:', error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     loadInvitations();
