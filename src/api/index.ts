@@ -298,9 +298,241 @@ export const expensesApi = {
   delete: async (tripId: number, expenseId: number): Promise<void> => apiClient.delete(`/expenses/${tripId}/${expenseId}`),
 };
 
+// Types for diary photos
+interface DiaryPhoto {
+  id: number;
+  file_path: string;
+  file_name: string;
+  memo: string | null;
+  order_index: number;
+  created_at: string;
+}
+
+interface DiaryEntryResponse {
+  id: number;
+  trip_id: number;
+  user_id: number;
+  username: string;
+  date: string;
+  expense_id: number | null;
+  memo: string | null;
+  photos: DiaryPhoto[];
+  created_at: string;
+  updated_at: string;
+}
+
+// Backend base URL for constructing photo URLs
+const getBackendUrl = () => {
+  // Use the API URL but remove /api suffix for static files
+  const apiUrl = import.meta.env.VITE_API_URL || '/api';
+  if (apiUrl.endsWith('/api')) {
+    return apiUrl.slice(0, -4);
+  }
+  return apiUrl.replace('/api', '');
+};
+
 export const diaryApi = {
+  // Legacy methods
   getByDate: async (tripId: number, date: string): Promise<DiaryEntry[]> => apiClient.get(`/trips/${tripId}/diary?date=${date}`),
   create: async (tripId: number, data: Omit<DiaryEntry, 'id' | 'trip_id' | 'created_at'>): Promise<DiaryEntry> => apiClient.post(`/trips/${tripId}/diary`, data),
+  
+  // === Date-Based Diary (for photo dumps and daily memos) ===
+  
+  // Get all diary entries for a specific date (shared among all participants)
+  getEntriesForDate: async (tripId: number, date: string): Promise<DiaryEntryResponse[]> => {
+    console.log('📖 Getting diary entries for date:', { tripId, date });
+    try {
+      const entries = await apiClient.get<DiaryEntryResponse[]>(`/diary/${tripId}/${date}`);
+      console.log('✅ Diary entries loaded:', entries.length);
+      return entries;
+    } catch (error) {
+      console.error('❌ Failed to get diary entries:', error);
+      return [];
+    }
+  },
+  
+  // Upload photos for a specific date (max 10 per user per date)
+  uploadPhotos: async (tripId: number, date: string, files: File[], memo?: string): Promise<DiaryPhoto[]> => {
+    console.log('📷 Uploading photos:', { tripId, date, fileCount: files.length });
+    
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+    if (memo) formData.append('memo', memo);
+    
+    const token = tokenManager.getToken();
+    const url = `${API_BASE}/diary/${tripId}/${date}/photos`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Failed to upload photos:', errorText);
+      throw new Error(`Upload failed: ${response.status}`);
+    }
+    
+    const photos = await response.json();
+    console.log('✅ Photos uploaded:', photos.length);
+    return photos;
+  },
+  
+  // Add or update daily memo
+  setDailyMemo: async (tripId: number, date: string, memo: string): Promise<DiaryEntryResponse> => {
+    console.log('📝 Setting daily memo:', { tripId, date, memo: memo.substring(0, 50) + '...' });
+    
+    const token = tokenManager.getToken();
+    const url = `${API_BASE}/diary/${tripId}/${date}/memo`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ memo }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Failed to set memo:', errorText);
+      throw new Error(`Set memo failed: ${response.status}`);
+    }
+    
+    return response.json();
+  },
+  
+  // Delete a photo
+  deletePhoto: async (tripId: number, date: string, photoId: number): Promise<void> => {
+    console.log('🗑️ Deleting photo:', { tripId, date, photoId });
+    
+    const token = tokenManager.getToken();
+    const url = `${API_BASE}/diary/${tripId}/${date}/photos/${photoId}`;
+    
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Failed to delete photo:', errorText);
+      throw new Error(`Delete failed: ${response.status}`);
+    }
+    
+    console.log('✅ Photo deleted');
+  },
+  
+  // === Expense-Linked Diary ===
+  
+  // Get diary entry for a specific expense
+  getExpenseDiary: async (expenseId: number): Promise<DiaryEntryResponse | null> => {
+    console.log('📖 Getting diary for expense:', expenseId);
+    try {
+      const entry = await apiClient.get<DiaryEntryResponse>(`/diary/expenses/${expenseId}`);
+      console.log('✅ Expense diary loaded:', entry);
+      return entry;
+    } catch (error) {
+      console.log('⚠️ No diary entry for expense:', expenseId);
+      return null;
+    }
+  },
+  
+  // Upload photo for expense (1 photo per expense)
+  uploadExpensePhoto: async (expenseId: number, file: File, memo?: string): Promise<DiaryEntryResponse> => {
+    console.log('📷 Uploading expense photo:', { expenseId, fileName: file.name });
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    if (memo) formData.append('memo', memo);
+    
+    const token = tokenManager.getToken();
+    const url = `${API_BASE}/diary/expenses/${expenseId}/photos`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Failed to upload expense photo:', errorText);
+      throw new Error(`Upload failed: ${response.status}`);
+    }
+    
+    return response.json();
+  },
+  
+  // Set memo for expense
+  setExpenseMemo: async (expenseId: number, memo: string): Promise<DiaryEntryResponse> => {
+    console.log('📝 Setting expense memo:', { expenseId });
+    
+    const token = tokenManager.getToken();
+    const url = `${API_BASE}/diary/expenses/${expenseId}/memo`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ memo }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Failed to set expense memo:', errorText);
+      throw new Error(`Set memo failed: ${response.status}`);
+    }
+    
+    return response.json();
+  },
+  
+  // Delete expense photo
+  deleteExpensePhoto: async (expenseId: number): Promise<void> => {
+    console.log('🗑️ Deleting expense photo:', expenseId);
+    
+    const token = tokenManager.getToken();
+    const url = `${API_BASE}/diary/expenses/${expenseId}/photos`;
+    
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Failed to delete expense photo:', errorText);
+      throw new Error(`Delete failed: ${response.status}`);
+    }
+  },
+  
+  // === Photo Feed (all photos from trip, shared among participants) ===
+  
+  getPhotoFeed: async (tripId: number, offset = 0, limit = 20): Promise<DiaryPhoto[]> => {
+    console.log('📷 Getting photo feed:', { tripId, offset, limit });
+    try {
+      const photos = await apiClient.get<DiaryPhoto[]>(`/trips/${tripId}/feed?offset=${offset}&limit=${limit}`);
+      console.log('✅ Photo feed loaded:', photos.length);
+      return photos;
+    } catch (error) {
+      console.error('❌ Failed to get photo feed:', error);
+      return [];
+    }
+  },
+  
+  // Helper: construct full photo URL from file_path
+  getPhotoUrl: (filePath: string): string => {
+    const backendUrl = getBackendUrl();
+    // Handle both absolute and relative paths
+    if (filePath.startsWith('http')) {
+      return filePath;
+    }
+    return `${backendUrl}/${filePath}`;
+  },
 };
 
 export const budgetApi = {

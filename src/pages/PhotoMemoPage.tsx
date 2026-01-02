@@ -1,35 +1,39 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
-import { expensesApi } from '../api';
+import { useAuth } from '../context/AuthContext';
+import { expensesApi, diaryApi } from '../api';
 import type { Expense } from '../types/api';
 import './PhotoMemoPage.css';
 
-interface PhotoData {
-  [expenseId: string]: string[]; // expense photos
+// Types for diary photos from API
+interface DiaryPhoto {
+  id: number;
+  file_path: string;
+  file_name: string;
+  memo: string | null;
+  order_index: number;
+  created_at: string;
 }
 
-interface PhotoDumpData {
-  [dateKey: string]: string[]; // up to 5 photo dump images
+interface DiaryEntry {
+  id: number;
+  trip_id: number;
+  user_id: number;
+  username: string;
+  date: string;
+  expense_id: number | null;
+  memo: string | null;
+  photos: DiaryPhoto[];
+  created_at: string;
+  updated_at: string;
 }
-
-interface MemoData {
-  [dateKey: string]: string; // daily memo
-}
-
-interface ExpenseMemoData {
-  [expenseKey: string]: string; // memo per expense
-}
-
-const PHOTO_STORAGE_KEY = 'expense_photos';
-const DUMP_STORAGE_KEY = 'photo_dump';
-const MEMO_STORAGE_KEY = 'daily_memo';
-const EXPENSE_MEMO_STORAGE_KEY = 'expense_memos';
 
 export default function PhotoMemoPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentTrip } = useTrips();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dumpFileInputRef = useRef<HTMLInputElement>(null);
   
@@ -38,57 +42,55 @@ export default function PhotoMemoPage() {
   
   // Data states
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [photoData, setPhotoData] = useState<PhotoData>({});
-  const [photoDump, setPhotoDump] = useState<PhotoDumpData>({});
-  const [memoData, setMemoData] = useState<MemoData>({});
-  const [expenseMemos, setExpenseMemos] = useState<ExpenseMemoData>({});
+  const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
   const [dailyMemo, setDailyMemo] = useState('');
+  const [expenseMemos, setExpenseMemos] = useState<{ [expenseId: number]: string }>({});
   
   // UI states
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [activeUploadType, setActiveUploadType] = useState<'expense' | 'dump' | null>(null);
 
-  // Load data
-  useEffect(() => {
+  // Load data from backend
+  const loadData = useCallback(async () => {
     if (!currentTrip) return;
+    setLoading(true);
     
-    // Load expenses
-    const loadExpenses = async () => {
-      setLoading(true);
-      try {
-        const data = await expensesApi.getByDate(currentTrip.id, selectedDate);
-        setExpenses(data);
-      } catch (error) {
-        const stored = localStorage.getItem(`expenses_${currentTrip.id}_${selectedDate}`);
-        if (stored) setExpenses(JSON.parse(stored));
+    try {
+      // Load expenses from API
+      const expData = await expensesApi.getByDate(currentTrip.id, selectedDate);
+      setExpenses(expData);
+      
+      // Load diary entries from API (shared among all participants!)
+      const entries = await diaryApi.getEntriesForDate(currentTrip.id, selectedDate);
+      setDiaryEntries(entries);
+      
+      // Extract daily memo (from date-based entries)
+      const dateEntry = entries.find(e => e.expense_id === null);
+      if (dateEntry?.memo) {
+        setDailyMemo(dateEntry.memo);
       }
+      
+      // Extract expense memos
+      const memos: { [expenseId: number]: string } = {};
+      entries.forEach(entry => {
+        if (entry.expense_id && entry.memo) {
+          memos[entry.expense_id] = entry.memo;
+        }
+      });
+      setExpenseMemos(memos);
+      
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    } finally {
       setLoading(false);
-    };
-    loadExpenses();
-    
-    // Load photos
-    const storedPhotos = localStorage.getItem(`${PHOTO_STORAGE_KEY}_${currentTrip.id}`);
-    if (storedPhotos) setPhotoData(JSON.parse(storedPhotos));
-    
-    // Load photo dumps
-    const storedDumps = localStorage.getItem(`${DUMP_STORAGE_KEY}_${currentTrip.id}`);
-    if (storedDumps) setPhotoDump(JSON.parse(storedDumps));
-    
-    // Load memos
-    const storedMemos = localStorage.getItem(`${MEMO_STORAGE_KEY}_${currentTrip.id}`);
-    if (storedMemos) {
-      const memos = JSON.parse(storedMemos);
-      setMemoData(memos);
-      setDailyMemo(memos[selectedDate] || '');
-    }
-    
-    // Load expense memos
-    const storedExpenseMemos = localStorage.getItem(`${EXPENSE_MEMO_STORAGE_KEY}_${currentTrip.id}`);
-    if (storedExpenseMemos) {
-      setExpenseMemos(JSON.parse(storedExpenseMemos));
     }
   }, [currentTrip, selectedDate]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleClose = () => navigate('/calendar');
 
@@ -97,7 +99,7 @@ export default function PhotoMemoPage() {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  // Photo handling
+  // Photo handling - upload to backend
   const handlePhotoClick = (expense: Expense) => {
     setSelectedExpense(expense);
     setActiveUploadType('expense');
@@ -105,63 +107,68 @@ export default function PhotoMemoPage() {
   };
 
   const handleDumpClick = () => {
-    const dumpCount = photoDump[selectedDate]?.length || 0;
-    if (dumpCount >= 5) return;
+    const dumpPhotos = getDumpPhotos();
+    if (dumpPhotos.length >= 10) return; // Max 10 per user per date
     setActiveUploadType('dump');
     dumpFileInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentTrip) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      
+    setSaving(true);
+    try {
       if (activeUploadType === 'expense' && selectedExpense) {
-        const newData = { ...photoData };
-        const expenseKey = `${selectedDate}_${selectedExpense.id}`;
-        if (!newData[expenseKey]) newData[expenseKey] = [];
-        newData[expenseKey].push(base64);
-        setPhotoData(newData);
-        localStorage.setItem(`${PHOTO_STORAGE_KEY}_${currentTrip.id}`, JSON.stringify(newData));
+        // Upload expense photo to backend
+        await diaryApi.uploadExpensePhoto(selectedExpense.id, file);
+        console.log('✅ Expense photo uploaded');
       } else if (activeUploadType === 'dump') {
-        const newData = { ...photoDump };
-        if (!newData[selectedDate]) newData[selectedDate] = [];
-        if (newData[selectedDate].length < 5) {
-          newData[selectedDate].push(base64);
-          setPhotoDump(newData);
-          localStorage.setItem(`${DUMP_STORAGE_KEY}_${currentTrip.id}`, JSON.stringify(newData));
-        }
+        // Upload photo dump to backend
+        await diaryApi.uploadPhotos(currentTrip.id, selectedDate, [file]);
+        console.log('✅ Photo dump uploaded');
       }
-    };
-    reader.readAsDataURL(file);
-    
-    // Reset
-    setSelectedExpense(null);
-    setActiveUploadType(null);
-    e.target.value = '';
-  };
-
-  const removeExpensePhoto = (expenseId: number, photoIndex: number) => {
-    if (!currentTrip) return;
-    const expenseKey = `${selectedDate}_${expenseId}`;
-    const newData = { ...photoData };
-    if (newData[expenseKey]) {
-      newData[expenseKey].splice(photoIndex, 1);
-      setPhotoData(newData);
-      localStorage.setItem(`${PHOTO_STORAGE_KEY}_${currentTrip.id}`, JSON.stringify(newData));
+      
+      // Reload data to get updated photos
+      await loadData();
+    } catch (error) {
+      console.error('Failed to upload photo:', error);
+      alert('Failed to upload photo. Please try again.');
+    } finally {
+      setSaving(false);
+      setSelectedExpense(null);
+      setActiveUploadType(null);
+      e.target.value = '';
     }
   };
 
-  const removeDumpPhoto = (index: number) => {
+  const removeExpensePhoto = async (expenseId: number) => {
     if (!currentTrip) return;
-    const newData = { ...photoDump };
-    if (newData[selectedDate]) {
-      newData[selectedDate].splice(index, 1);
-      setPhotoDump(newData);
-      localStorage.setItem(`${DUMP_STORAGE_KEY}_${currentTrip.id}`, JSON.stringify(newData));
+    
+    setSaving(true);
+    try {
+      await diaryApi.deleteExpensePhoto(expenseId);
+      console.log('✅ Expense photo deleted');
+      await loadData();
+    } catch (error) {
+      console.error('Failed to delete expense photo:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeDumpPhoto = async (photoId: number) => {
+    if (!currentTrip) return;
+    
+    setSaving(true);
+    try {
+      await diaryApi.deletePhoto(currentTrip.id, selectedDate, photoId);
+      console.log('✅ Photo deleted');
+      await loadData();
+    } catch (error) {
+      console.error('Failed to delete photo:', error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -170,42 +177,67 @@ export default function PhotoMemoPage() {
     setDailyMemo(value);
   };
 
-  // Expense memo handling
   const handleExpenseMemoChange = (expenseId: number, value: string) => {
-    if (!currentTrip) return;
-    const expenseKey = `${selectedDate}_${expenseId}`;
-    const newMemos = { ...expenseMemos, [expenseKey]: value };
-    setExpenseMemos(newMemos);
-    localStorage.setItem(`${EXPENSE_MEMO_STORAGE_KEY}_${currentTrip.id}`, JSON.stringify(newMemos));
+    setExpenseMemos(prev => ({ ...prev, [expenseId]: value }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!currentTrip) return;
-    const newMemos = { ...memoData, [selectedDate]: dailyMemo };
-    setMemoData(newMemos);
-    localStorage.setItem(`${MEMO_STORAGE_KEY}_${currentTrip.id}`, JSON.stringify(newMemos));
-    navigate('/calendar');
+    
+    setSaving(true);
+    try {
+      // Save daily memo to backend
+      if (dailyMemo.trim()) {
+        await diaryApi.setDailyMemo(currentTrip.id, selectedDate, dailyMemo);
+        console.log('✅ Daily memo saved');
+      }
+      
+      // Save expense memos to backend
+      for (const [expenseId, memo] of Object.entries(expenseMemos)) {
+        if (memo.trim()) {
+          await diaryApi.setExpenseMemo(Number(expenseId), memo);
+          console.log('✅ Expense memo saved for:', expenseId);
+        }
+      }
+      
+      navigate('/calendar');
+    } catch (error) {
+      console.error('Failed to save:', error);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Helper: get photos for an expense from diary entries
+  const getExpensePhotos = (expenseId: number): DiaryPhoto[] => {
+    const entry = diaryEntries.find(e => e.expense_id === expenseId);
+    return entry?.photos || [];
+  };
+
+  // Helper: get photo dump (date-based photos) from diary entries
+  const getDumpPhotos = (): DiaryPhoto[] => {
+    const dateEntry = diaryEntries.find(e => e.expense_id === null);
+    return dateEntry?.photos || [];
   };
 
   // Calculate totals
   const getTotalPhotos = () => {
     let count = 0;
-    // Count expense photos for this date
-    expenses.forEach(exp => {
-      const key = `${selectedDate}_${exp.id}`;
-      count += photoData[key]?.length || 0;
+    diaryEntries.forEach(entry => {
+      count += entry.photos?.length || 0;
     });
-    // Count photo dump
-    count += photoDump[selectedDate]?.length || 0;
     return count;
   };
 
   const getCategoryEmoji = (category: string) => {
     const categories: { [key: string]: string } = {
       'food': '🍽️', 'drinks': '🍺', 'transport': '🚗', 'hotel': '🏨',
-      'shopping': '🛍️', 'activity': '🎭', 'ticket': '🎫', 'gift': '🎁', 'cafe': '☕'
+      'shopping': '🛍️', 'activity': '🎭', 'ticket': '🎫', 'gift': '🎁', 'cafe': '☕',
+      'transportation': '🚗', 'accommodation': '🏨', 'entertainment': '🎭',
+      'souvenir': '🎁', 'drink': '🍺', 'health': '💊', 'communication': '📱', 'other': '📝'
     };
-    return categories[category.toLowerCase()] || '📝';
+    return categories[category?.toLowerCase()] || '📝';
   };
 
   if (!currentTrip) {
@@ -219,7 +251,7 @@ export default function PhotoMemoPage() {
     );
   }
 
-  const dumpPhotos = photoDump[selectedDate] || [];
+  const dumpPhotos = getDumpPhotos();
 
   return (
     <div className="photomemo-page">
@@ -265,6 +297,10 @@ export default function PhotoMemoPage() {
           <span className="stat-icon">💰</span>
           <span>Expenses: <strong>{expenses.length}</strong></span>
         </div>
+        <div className="stat-item shared-badge">
+          <span className="stat-icon">👥</span>
+          <span>Shared with all</span>
+        </div>
       </div>
 
       <div className="page-content">
@@ -282,9 +318,8 @@ export default function PhotoMemoPage() {
           ) : (
             <div className="expense-list">
               {expenses.map(expense => {
-                const expenseKey = `${selectedDate}_${expense.id}`;
-                const photos = photoData[expenseKey] || [];
-                const expenseMemo = expenseMemos[expenseKey] || '';
+                const photos = getExpensePhotos(expense.id);
+                const expenseMemo = expenseMemos[expense.id] || '';
                 
                 return (
                   <div key={expense.id} className="expense-item">
@@ -301,20 +336,23 @@ export default function PhotoMemoPage() {
                       <button 
                         className="add-photo-btn"
                         onClick={() => handlePhotoClick(expense)}
+                        disabled={saving || photos.length >= 1}
                       >
-                        + 📷
+                        {photos.length >= 1 ? '📷' : '+ 📷'}
                       </button>
                     </div>
                     {/* Expense Photos */}
                     {photos.length > 0 && (
                       <div className="expense-photos">
-                        {photos.map((photo, idx) => (
-                          <div key={idx} className="photo-thumb">
-                            <img src={photo} alt={`Expense photo ${idx + 1}`} />
+                        {photos.map((photo) => (
+                          <div key={photo.id} className="photo-thumb">
+                            <img src={diaryApi.getPhotoUrl(photo.file_path)} alt={photo.file_name} />
                             <button 
                               className="remove-photo"
-                              onClick={() => removeExpensePhoto(expense.id, idx)}
+                              onClick={() => removeExpensePhoto(expense.id)}
+                              disabled={saving}
                             >×</button>
+                            <span className="photo-author">{user?.username === diaryEntries.find(e => e.expense_id === expense.id)?.username ? 'You' : diaryEntries.find(e => e.expense_id === expense.id)?.username}</span>
                           </div>
                         ))}
                       </div>
@@ -340,22 +378,23 @@ export default function PhotoMemoPage() {
         <section className="section dump-section">
           <div className="section-header">
             <h2 className="section-title">📷 PHOTO DUMP</h2>
-            <span className="photo-count">{dumpPhotos.length} / 5</span>
+            <span className="photo-count">{dumpPhotos.length} / 10</span>
           </div>
-          <p className="section-hint">Add up to 5 extra photos from your day!</p>
+          <p className="section-hint">Add up to 10 photos from your day! (Shared with all participants)</p>
           
           <div className="dump-grid">
-            {dumpPhotos.map((photo, idx) => (
-              <div key={idx} className="dump-photo">
-                <img src={photo} alt={`Photo ${idx + 1}`} />
+            {dumpPhotos.map((photo) => (
+              <div key={photo.id} className="dump-photo">
+                <img src={diaryApi.getPhotoUrl(photo.file_path)} alt={photo.file_name} />
                 <button 
                   className="remove-photo"
-                  onClick={() => removeDumpPhoto(idx)}
+                  onClick={() => removeDumpPhoto(photo.id)}
+                  disabled={saving}
                 >×</button>
               </div>
             ))}
-            {dumpPhotos.length < 5 && (
-              <button className="add-dump-btn" onClick={handleDumpClick}>
+            {dumpPhotos.length < 10 && (
+              <button className="add-dump-btn" onClick={handleDumpClick} disabled={saving}>
                 <span className="add-icon">+</span>
                 <span className="add-text">ADD</span>
               </button>
@@ -373,18 +412,26 @@ export default function PhotoMemoPage() {
             onChange={(e) => handleMemoChange(e.target.value)}
             rows={4}
           />
-          <p className="memo-hint">💡 This is a general memo for the whole day</p>
+          <p className="memo-hint">💡 This memo is shared with all trip participants</p>
         </section>
       </div>
 
       {/* Save Button */}
       <div className="save-footer">
-        <button className="save-btn" onClick={handleSave}>
-          <span>✓</span>
-          <span>SAVE & CLOSE</span>
+        <button className="save-btn" onClick={handleSave} disabled={saving}>
+          {saving ? (
+            <>
+              <span className="spinner"></span>
+              <span>SAVING...</span>
+            </>
+          ) : (
+            <>
+              <span>✓</span>
+              <span>SAVE & CLOSE</span>
+            </>
+          )}
         </button>
       </div>
     </div>
   );
 }
-

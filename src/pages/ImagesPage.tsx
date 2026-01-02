@@ -1,15 +1,42 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
+import { useAuth } from '../context/AuthContext';
+import { diaryApi, expensesApi } from '../api';
 import BottomNav, { saveLastPage } from '../components/BottomNav';
 import './ImagesPage.css';
 
+// Types for diary photos from API
+interface DiaryPhoto {
+  id: number;
+  file_path: string;
+  file_name: string;
+  memo: string | null;
+  order_index: number;
+  created_at: string;
+}
+
+interface DiaryEntry {
+  id: number;
+  trip_id: number;
+  user_id: number;
+  username: string;
+  date: string;
+  expense_id: number | null;
+  memo: string | null;
+  photos: DiaryPhoto[];
+  created_at: string;
+  updated_at: string;
+}
+
 interface PhotoEntry {
   id: string;
+  photoId: number;
   type: 'expense' | 'dump';
-  photo: string;
+  photoUrl: string;
   date: string;
-  expenseId?: string;
+  author: string;
+  expenseId?: number;
   expenseInfo?: {
     place: string;
     amount: number;
@@ -17,14 +44,7 @@ interface PhotoEntry {
     category: string;
     time: string;
   };
-}
-
-interface MemoData {
-  [dateKey: string]: string;
-}
-
-interface ExpenseMemoData {
-  [expenseKey: string]: string;
+  memo?: string;
 }
 
 interface Comment {
@@ -39,23 +59,19 @@ interface CommentData {
   [photoId: string]: Comment[];
 }
 
-const PHOTO_STORAGE_KEY = 'expense_photos';
-const DUMP_STORAGE_KEY = 'photo_dump';
-const MEMO_STORAGE_KEY = 'daily_memo';
-const EXPENSE_STORAGE_KEY = 'expenses';
-const EXPENSE_MEMO_STORAGE_KEY = 'expense_memos';
 const COMMENTS_STORAGE_KEY = 'photo_comments';
 
 export default function ImagesPage() {
   const navigate = useNavigate();
   const { currentTrip } = useTrips();
+  const { user } = useAuth();
   const [photos, setPhotos] = useState<PhotoEntry[]>([]);
-  const [memos, setMemos] = useState<MemoData>({});
-  const [expenseMemos, setExpenseMemos] = useState<ExpenseMemoData>({});
+  const [memos, setMemos] = useState<{ [date: string]: string }>({});
   const [comments, setComments] = useState<CommentData>({});
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'timeline'>('timeline');
   const [newComment, setNewComment] = useState('');
+  const [loading, setLoading] = useState(false);
   
   // Swipe handling
   const touchStartX = useRef<number>(0);
@@ -69,88 +85,97 @@ export default function ImagesPage() {
     saveLastPage('/images');
   }, []);
 
-  useEffect(() => {
+  // Load photos from backend
+  const loadPhotos = useCallback(async () => {
     if (!currentTrip) return;
-
-    const loadPhotos = () => {
+    
+    setLoading(true);
+    try {
       const allPhotos: PhotoEntry[] = [];
-
-      // Load expense photos
-      const expensePhotos = localStorage.getItem(`${PHOTO_STORAGE_KEY}_${currentTrip.id}`);
-      if (expensePhotos) {
-        const photoData = JSON.parse(expensePhotos);
-        Object.entries(photoData).forEach(([key, photos]) => {
-          const [date, expenseId] = key.split('_');
-          // Try to get expense info
-          const expensesStored = localStorage.getItem(`${EXPENSE_STORAGE_KEY}_${currentTrip.id}_${date}`);
-          let expenseInfo: { place: string; amount: number; currency: string; category: string; time: string } | undefined;
-          if (expensesStored) {
-            const expenses = JSON.parse(expensesStored);
-            const expense = expenses.find((e: any) => e.id.toString() === expenseId);
-            if (expense) {
-              expenseInfo = {
-                place: expense.place || 'No place',
-                amount: expense.amount,
-                currency: expense.currency,
-                category: expense.category,
-                time: expense.time || '--:--'
-              };
-            }
+      const allMemos: { [date: string]: string } = {};
+      
+      // Get trip date range
+      const startDate = new Date(currentTrip.start_date);
+      const endDate = new Date(currentTrip.end_date);
+      
+      // Load diary entries for each date in the trip
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        
+        try {
+          // Get diary entries for this date (includes all participants' photos!)
+          const entries = await diaryApi.getEntriesForDate(currentTrip.id, dateStr);
+          
+          // Get expenses for this date (for expense info)
+          let expenses: any[] = [];
+          try {
+            expenses = await expensesApi.getByDate(currentTrip.id, dateStr);
+          } catch (e) {
+            // Expenses might not exist for this date
           }
-          (photos as string[]).forEach((photo, idx) => {
-            allPhotos.push({
-              id: `expense_${key}_${idx}`,
-              type: 'expense',
-              photo,
-              date,
-              expenseId: key, // Store the expense key for memo lookup
-              expenseInfo
+          
+          entries.forEach((entry: DiaryEntry) => {
+            // Store daily memo
+            if (!entry.expense_id && entry.memo) {
+              allMemos[dateStr] = entry.memo;
+            }
+            
+            // Add photos
+            entry.photos.forEach((photo: DiaryPhoto) => {
+              const photoEntry: PhotoEntry = {
+                id: `${entry.expense_id ? 'expense' : 'dump'}_${dateStr}_${photo.id}`,
+                photoId: photo.id,
+                type: entry.expense_id ? 'expense' : 'dump',
+                photoUrl: diaryApi.getPhotoUrl(photo.file_path),
+                date: dateStr,
+                author: entry.username,
+                memo: entry.memo || undefined,
+              };
+              
+              // If expense-linked, add expense info
+              if (entry.expense_id) {
+                photoEntry.expenseId = entry.expense_id;
+                const expense = expenses.find((e: any) => e.id === entry.expense_id);
+                if (expense) {
+                  photoEntry.expenseInfo = {
+                    place: expense.place || expense.description || 'No place',
+                    amount: expense.amount,
+                    currency: expense.currency,
+                    category: expense.category || 'other',
+                    time: expense.time || '--:--'
+                  };
+                }
+              }
+              
+              allPhotos.push(photoEntry);
             });
           });
-        });
+        } catch (error) {
+          // No entries for this date
+        }
       }
-
-      // Load photo dumps
-      const dumpPhotos = localStorage.getItem(`${DUMP_STORAGE_KEY}_${currentTrip.id}`);
-      if (dumpPhotos) {
-        const dumpData = JSON.parse(dumpPhotos);
-        Object.entries(dumpData).forEach(([date, photos]) => {
-          (photos as string[]).forEach((photo, idx) => {
-            allPhotos.push({
-              id: `dump_${date}_${idx}`,
-              type: 'dump',
-              photo,
-              date
-            });
-          });
-        });
-      }
-
+      
       // Sort by date (newest first)
       allPhotos.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setPhotos(allPhotos);
-
-      // Load memos
-      const memoData = localStorage.getItem(`${MEMO_STORAGE_KEY}_${currentTrip.id}`);
-      if (memoData) {
-        setMemos(JSON.parse(memoData));
-      }
-
-      // Load expense memos
-      const expenseMemoData = localStorage.getItem(`${EXPENSE_MEMO_STORAGE_KEY}_${currentTrip.id}`);
-      if (expenseMemoData) {
-        setExpenseMemos(JSON.parse(expenseMemoData));
-      }
-
-      // Load comments
+      setMemos(allMemos);
+      
+      // Load comments from localStorage (comments are still local for now)
       const commentsData = localStorage.getItem(`${COMMENTS_STORAGE_KEY}_${currentTrip.id}`);
       if (commentsData) {
         setComments(JSON.parse(commentsData));
       }
-    };
-
-    loadPhotos();
+      
+    } catch (error) {
+      console.error('Failed to load photos:', error);
+    } finally {
+      setLoading(false);
+    }
   }, [currentTrip]);
+
+  useEffect(() => {
+    loadPhotos();
+  }, [loadPhotos]);
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -165,27 +190,21 @@ export default function ImagesPage() {
   const getCategoryEmoji = (category: string) => {
     const categories: { [key: string]: string } = {
       'food': '🍽️', 'drinks': '🍺', 'transport': '🚗', 'hotel': '🏨',
-      'shopping': '🛍️', 'activity': '🎭', 'ticket': '🎫', 'gift': '🎁', 'cafe': '☕'
+      'shopping': '🛍️', 'activity': '🎭', 'ticket': '🎫', 'gift': '🎁', 'cafe': '☕',
+      'transportation': '🚗', 'accommodation': '🏨', 'entertainment': '🎭',
+      'souvenir': '🎁', 'drink': '🍺', 'health': '💊', 'communication': '📱', 'other': '📝'
     };
     return categories[category?.toLowerCase()] || '📸';
   };
 
-  // Get expense memo for a photo
-  const getPhotoMemo = (photo: PhotoEntry): string | null => {
-    if (photo.type === 'expense' && photo.expenseId) {
-      return expenseMemos[photo.expenseId] || null;
-    }
-    return null;
-  };
-
   // Add a new comment to a photo
   const handleAddComment = () => {
-    if (!selectedPhoto || !newComment.trim() || !currentTrip) return;
+    if (!selectedPhoto || !newComment.trim() || !currentTrip || !user) return;
 
     const comment: Comment = {
       id: Date.now().toString(),
       text: newComment.trim(),
-      author: 'Me',
+      author: user.username,
       timestamp: new Date().toISOString(),
       isMe: true,
     };
@@ -315,6 +334,7 @@ export default function ImagesPage() {
           <div className="trip-name-display">
             <span>📸</span>
             <span>IMAGE FEED</span>
+            <span className="shared-indicator">👥 Shared</span>
           </div>
           <span className="trip-dates-small">
             {currentTrip.name} • {photos.length} photos
@@ -322,11 +342,17 @@ export default function ImagesPage() {
         </div>
 
         {/* Photos Container */}
-        {photos.length === 0 ? (
+        {loading ? (
+          <div className="loading-photos">
+            <div className="loading-spinner">📷</div>
+            <p>Loading shared photos...</p>
+          </div>
+        ) : photos.length === 0 ? (
           <div className="empty-images">
             <div className="empty-icon">📷</div>
             <h3>No photos yet</h3>
             <p>Add photos from the Calendar → Photo</p>
+            <p className="shared-hint">All participants can see each other's photos!</p>
             <button className="go-calendar-btn" onClick={() => navigate('/calendar')}>
               Go to Calendar
             </button>
@@ -339,10 +365,11 @@ export default function ImagesPage() {
                 className="grid-photo"
                 onClick={() => openPhoto(photo)}
               >
-                <img src={photo.photo} alt="" />
+                <img src={photo.photoUrl} alt="" />
                 {photo.type === 'expense' && (
                   <span className="photo-type-badge expense">💰</span>
                 )}
+                <span className="photo-author-badge">{photo.author}</span>
               </div>
             ))}
           </div>
@@ -365,30 +392,28 @@ export default function ImagesPage() {
 
                 {/* Photos Grid */}
                 <div className="day-photos">
-                  {groupedPhotos[date].map((photo) => {
-                    const photoMemo = getPhotoMemo(photo);
-                    return (
-                      <div key={photo.id} className="day-photo-wrapper">
-                        <div 
-                          className="day-photo"
-                          onClick={() => openPhoto(photo)}
-                        >
-                          <img src={photo.photo} alt="" />
-                          {photo.type === 'expense' && photo.expenseInfo && (
-                            <div className="photo-expense-label">
-                              <span>{getCategoryEmoji(photo.expenseInfo.category)}</span>
-                              <span>{photo.expenseInfo.amount.toLocaleString()}</span>
-                            </div>
-                          )}
-                        </div>
-                        {photoMemo && (
-                          <div className="photo-memo-preview">
-                            <span className="memo-text">{photoMemo}</span>
+                  {groupedPhotos[date].map((photo) => (
+                    <div key={photo.id} className="day-photo-wrapper">
+                      <div 
+                        className="day-photo"
+                        onClick={() => openPhoto(photo)}
+                      >
+                        <img src={photo.photoUrl} alt="" />
+                        {photo.type === 'expense' && photo.expenseInfo && (
+                          <div className="photo-expense-label">
+                            <span>{getCategoryEmoji(photo.expenseInfo.category)}</span>
+                            <span>{photo.expenseInfo.amount.toLocaleString()}</span>
                           </div>
                         )}
+                        <span className="photo-author-label">{photo.author}</span>
                       </div>
-                    );
-                  })}
+                      {photo.memo && (
+                        <div className="photo-memo-preview">
+                          <span className="memo-text">{photo.memo}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
@@ -405,6 +430,7 @@ export default function ImagesPage() {
             {/* Date Header with photo counter */}
             <div className="modal-date-header">
               <span>📅 {formatFullDate(selectedPhoto.date)}</span>
+              <span className="photo-author-info">by {selectedPhoto.author}</span>
               <span className="photo-counter">{selectedPhotoIndex + 1} / {photos.length}</span>
             </div>
 
@@ -422,7 +448,7 @@ export default function ImagesPage() {
                 </button>
               )}
               
-              <img src={selectedPhoto.photo} alt="" />
+              <img src={selectedPhoto.photoUrl} alt="" />
               
               {/* Right Arrow */}
               {selectedPhotoIndex < photos.length - 1 && (
@@ -449,7 +475,7 @@ export default function ImagesPage() {
                   (comments[selectedPhoto.id] || []).map((comment) => (
                     <div 
                       key={comment.id} 
-                      className={`comment-bubble ${comment.isMe ? 'my-comment' : 'other-comment'}`}
+                      className={`comment-bubble ${comment.author === user?.username ? 'my-comment' : 'other-comment'}`}
                     >
                       <div className="comment-header">
                         <span className="comment-author">{comment.author}</span>
