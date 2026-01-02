@@ -271,6 +271,35 @@ export const fxApi = {
   },
 };
 
+// Users API - Search registered users
+export const usersApi = {
+  // Get user by exact username
+  getByUsername: async (username: string): Promise<User | null> => {
+    console.log('🔍 Looking up user by username:', username);
+    try {
+      const user = await apiClient.get<User>(`/users/username/${encodeURIComponent(username)}`);
+      console.log('✅ Found user:', user);
+      return user;
+    } catch (error) {
+      console.log('⚠️ User not found:', username);
+      return null;
+    }
+  },
+  
+  // Get user by ID
+  getById: async (userId: number): Promise<User | null> => {
+    console.log('🔍 Looking up user by ID:', userId);
+    try {
+      const user = await apiClient.get<User>(`/users/${userId}`);
+      console.log('✅ Found user:', user);
+      return user;
+    } catch (error) {
+      console.log('⚠️ User not found by ID:', userId);
+      return null;
+    }
+  },
+};
+
 export const ocrApi = {
   // Preview OCR - returns parsed items without creating
   parseReceipt: async (tripId: number, date: string, file: File): Promise<{ amount: number; currency: string; description: string; date: string | null }[]> => {

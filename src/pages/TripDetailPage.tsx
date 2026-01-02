@@ -242,17 +242,31 @@ export default function TripDetailPage() {
     navigate('/home');
   };
 
-  // Add participant by username via API
-  const handleAddParticipant = async (username: string): Promise<void> => {
-    if (!trip) throw new Error('No trip selected');
+  // Add participant by selecting from user list
+  const handleAddParticipant = (user: { id: number; username: string }) => {
+    if (!trip) return;
     
-    console.log('👥 Adding participant:', username);
+    console.log('👥 Adding participant:', user);
     
-    // Call backend API to add participant
-    await tripsApi.addParticipant(trip.id, username);
+    const newParticipant: Participant = {
+      id: user.id,
+      name: user.username,
+      username: user.username,
+    };
     
-    // Reload participants from API
-    await loadParticipantsFromApi();
+    // Check if already added
+    if (participants.some(p => p.id === user.id)) {
+      return;
+    }
+    
+    const updated = [...participants, newParticipant];
+    setParticipants(updated);
+    localStorage.setItem(`trip_participants_${trip.id}`, JSON.stringify(updated));
+    
+    // Also call API to add participant
+    tripsApi.addParticipant(trip.id, user.username).catch(err => {
+      console.error('Failed to add participant via API:', err);
+    });
   };
   
   // Load participants from backend API
@@ -672,6 +686,7 @@ export default function TripDetailPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddParticipant}
+        existingParticipantIds={participants.map(p => p.id)}
       />
     </div>
   );

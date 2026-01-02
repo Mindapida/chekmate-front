@@ -1,30 +1,40 @@
 import { useState, useEffect } from 'react';
+import { usersApi } from '../api';
 import './AddParticipantModal.css';
+
+interface User {
+  id: number;
+  username: string;
+}
 
 interface AddParticipantModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (username: string) => Promise<void>;
+  onAdd: (user: User) => void;
+  existingParticipantIds: number[];
 }
 
 export default function AddParticipantModal({ 
   isOpen, 
   onClose, 
   onAdd,
+  existingParticipantIds,
 }: AddParticipantModalProps) {
-  const [username, setUsername] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [foundUser, setFoundUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setIsClosing(false);
-      setUsername('');
+      setSearchTerm('');
+      setFoundUser(null);
       setError('');
-      setSuccess('');
+      setHasSearched(false);
     }
   }, [isOpen]);
 
@@ -34,57 +44,57 @@ export default function AddParticipantModal({
     setIsClosing(true);
     setTimeout(() => {
       setIsClosing(false);
-      setUsername('');
+      setSearchTerm('');
+      setFoundUser(null);
       setError('');
-      setSuccess('');
+      setHasSearched(false);
       onClose();
     }, 300);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const trimmedUsername = username.trim();
-    
-    if (!trimmedUsername) {
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
       setError('Please enter a username');
-      return;
-    }
-
-    if (trimmedUsername.length < 3) {
-      setError('Username must be at least 3 characters');
       return;
     }
 
     setIsLoading(true);
     setError('');
-    setSuccess('');
+    setFoundUser(null);
+    setHasSearched(true);
 
     try {
-      await onAdd(trimmedUsername);
-      setSuccess(`${trimmedUsername} has been added!`);
-      setUsername('');
+      const user = await usersApi.getByUsername(searchTerm.trim());
       
-      // Close modal after short delay
-      setTimeout(() => {
-        handleClose();
-      }, 1000);
-    } catch (err) {
-      console.error('Failed to add participant:', err);
-      if (err instanceof Error) {
-        if (err.message.includes('404') || err.message.includes('not found')) {
-          setError(`User "${trimmedUsername}" not found. Make sure the username is correct.`);
-        } else if (err.message.includes('already') || err.message.includes('exists')) {
-          setError(`${trimmedUsername} is already a participant.`);
+      if (user) {
+        // Check if already added
+        if (existingParticipantIds.includes(user.id)) {
+          setError('This user is already a participant');
+          setFoundUser(null);
         } else {
-          setError(err.message || 'Failed to add participant. Please try again.');
+          setFoundUser(user);
+          setError('');
         }
       } else {
-        setError('Failed to add participant. Please try again.');
+        setError(`User "${searchTerm}" not found. Make sure they have signed up.`);
       }
+    } catch (err) {
+      console.error('Failed to search user:', err);
+      setError('Failed to search. Please try again.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const handleSelectUser = (user: User) => {
+    onAdd(user);
+    handleClose();
   };
 
   return (
@@ -100,76 +110,86 @@ export default function AddParticipantModal({
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="participant-form">
-          {/* Username Input */}
-          <div className="input-container">
-            <label htmlFor="username-input">Username</label>
-            <div className="input-wrapper">
-              <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M10 10C12.2091 10 14 8.20914 14 6C14 3.79086 12.2091 2 10 2C7.79086 2 6 3.79086 6 6C6 8.20914 7.79086 10 10 10Z" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M17.0001 18C17.0001 14.6863 13.866 12 10.0001 12C6.13413 12 3.00006 14.6863 3.00006 18" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <input
-                id="username-input"
-                type="text"
-                placeholder="Enter username to add"
-                value={username}
-                onChange={e => {
-                  setUsername(e.target.value);
-                  setError('');
-                  setSuccess('');
-                }}
-                disabled={isLoading}
-                autoFocus
-                autoComplete="off"
-              />
-            </div>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="message error-message">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="#EF4444" strokeWidth="1.5"/>
-                <path d="M8 5V8M8 11H8.01" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Success Message */}
-          {success && (
-            <div className="message success-message">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="#22C55E" strokeWidth="1.5"/>
-                <path d="M5.5 8L7 9.5L10.5 6" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span>{success}</span>
-            </div>
-          )}
-
-          {/* Submit Button */}
+        {/* Search */}
+        <div className="search-container">
+          <svg className="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M19 19L14.65 14.65" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="Enter username to search..."
+            value={searchTerm}
+            onChange={e => {
+              setSearchTerm(e.target.value);
+              setHasSearched(false);
+              setError('');
+              setFoundUser(null);
+            }}
+            onKeyDown={handleKeyPress}
+            autoFocus
+          />
           <button 
-            type="submit" 
-            className="submit-btn"
-            disabled={isLoading || !username.trim()}
+            className="search-btn" 
+            onClick={handleSearch}
+            disabled={isLoading || !searchTerm.trim()}
           >
             {isLoading ? (
-              <>
-                <span className="btn-spinner" />
-                Adding...
-              </>
+              <div className="search-spinner-small" />
             ) : (
-              <>
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M10 4V16M4 10H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-                Add Participant
-              </>
+              'Search'
             )}
           </button>
-        </form>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="search-error">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="#EF4444" strokeWidth="1.5"/>
+              <path d="M8 5V8M8 11H8.01" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Search Result */}
+        <div className="user-list">
+          {isLoading ? (
+            <div className="loading-users">
+              <div className="loading-spinner" />
+              <p>Searching...</p>
+            </div>
+          ) : foundUser ? (
+            <button
+              className="user-item found"
+              onClick={() => handleSelectUser(foundUser)}
+            >
+              <div className="user-avatar">
+                {foundUser.username.charAt(0).toUpperCase()}
+              </div>
+              <div className="user-info">
+                <span className="user-name">{foundUser.username}</span>
+                <span className="user-hint">Click to add</span>
+              </div>
+              <svg className="add-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M10 4V16M4 10H16" stroke="#2B7FFF" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          ) : hasSearched && !error ? (
+            <div className="no-users">
+              <span>👤</span>
+              <p>No user found</p>
+              <small>Try a different username</small>
+            </div>
+          ) : !hasSearched ? (
+            <div className="search-prompt">
+              <span>🔍</span>
+              <p>Search for a user</p>
+              <small>Enter their username and click Search</small>
+            </div>
+          ) : null}
+        </div>
 
         {/* Info */}
         <div className="modal-info">
@@ -177,7 +197,7 @@ export default function AddParticipantModal({
             <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="#9CA3AF" strokeWidth="1.5"/>
             <path d="M8 5V8M8 11H8.01" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
-          <span>Enter the exact username of a registered user to add them</span>
+          <span>Search for registered users by their exact username</span>
         </div>
       </div>
     </div>
