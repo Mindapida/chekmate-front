@@ -1,0 +1,254 @@
+/* Trip Invitation Notification */
+.invitation-notification {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  margin: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.notification-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.notification-header:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.notification-icon {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-icon .bell {
+  font-size: 24px;
+  animation: ring 2s ease-in-out infinite;
+}
+
+@keyframes ring {
+  0%, 100% { transform: rotate(0); }
+  10%, 30% { transform: rotate(-10deg); }
+  20%, 40% { transform: rotate(10deg); }
+  50% { transform: rotate(0); }
+}
+
+.notification-icon .badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  background: #FF6B6B;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.5);
+}
+
+.notification-title {
+  flex: 1;
+}
+
+.notification-title h3 {
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  font-family: 'Quicksand', sans-serif;
+}
+
+.notification-title p {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  margin: 2px 0 0 0;
+}
+
+.toggle-btn {
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Invitation List */
+.invitation-list {
+  background: white;
+  border-radius: 16px 16px 0 0;
+  padding: 8px;
+}
+
+.invitation-item {
+  background: #F9FAFB;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.invitation-item:last-child {
+  margin-bottom: 0;
+}
+
+.trip-info {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.trip-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #4ECDC4 0%, #45B7D1 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.trip-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.trip-details h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1F2937;
+  margin: 0 0 4px 0;
+  font-family: 'Quicksand', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trip-dates {
+  font-size: 13px;
+  color: #6B7280;
+  margin: 0 0 4px 0;
+}
+
+.invite-message {
+  font-size: 12px;
+  color: #9CA3AF;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Action Buttons */
+.invitation-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.accept-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #4ECDC4 0%, #45B7D1 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.accept-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(78, 205, 196, 0.4);
+}
+
+.decline-btn {
+  padding: 12px 16px;
+  background: transparent;
+  color: #6B7280;
+  border: 2px solid #E5E7EB;
+  border-radius: 10px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.decline-btn:hover {
+  background: #F3F4F6;
+  border-color: #D1D5DB;
+}
+
+/* Dismiss All */
+.dismiss-all-btn {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  color: #9CA3AF;
+  border: none;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+  margin-top: 8px;
+}
+
+.dismiss-all-btn:hover {
+  color: #6B7280;
+}
+
+/* Collapsed State */
+.invitation-notification.collapsed .invitation-list {
+  display: none;
+}
+

@@ -207,6 +207,49 @@ export const tripsApi = {
   },
 };
 
+// Trip Invitations - Track pending trip invitations
+const SEEN_TRIPS_KEY = 'seen_trip_ids';
+const PENDING_INVITES_KEY = 'pending_trip_invites';
+
+export const invitationsApi = {
+  // Get trips user hasn't seen yet (new invitations)
+  getNewInvitations: async (): Promise<Trip[]> => {
+    try {
+      const allTrips = await tripsApi.getAll();
+      const seenTripIds = JSON.parse(localStorage.getItem(SEEN_TRIPS_KEY) || '[]') as number[];
+      
+      // Filter trips that user hasn't seen
+      const newTrips = allTrips.filter(trip => !seenTripIds.includes(trip.id));
+      console.log('🔔 New trip invitations:', newTrips.length);
+      return newTrips;
+    } catch (error) {
+      console.error('Failed to get invitations:', error);
+      return [];
+    }
+  },
+  
+  // Mark trip as seen (acknowledged)
+  markAsSeen: (tripId: number) => {
+    const seenTripIds = JSON.parse(localStorage.getItem(SEEN_TRIPS_KEY) || '[]') as number[];
+    if (!seenTripIds.includes(tripId)) {
+      seenTripIds.push(tripId);
+      localStorage.setItem(SEEN_TRIPS_KEY, JSON.stringify(seenTripIds));
+    }
+  },
+  
+  // Mark all trips as seen
+  markAllAsSeen: (tripIds: number[]) => {
+    const seenTripIds = JSON.parse(localStorage.getItem(SEEN_TRIPS_KEY) || '[]') as number[];
+    const updated = [...new Set([...seenTripIds, ...tripIds])];
+    localStorage.setItem(SEEN_TRIPS_KEY, JSON.stringify(updated));
+  },
+  
+  // Clear seen trips (for testing)
+  clearSeen: () => {
+    localStorage.removeItem(SEEN_TRIPS_KEY);
+  },
+};
+
 // Expense creation payload (different from Expense type - no date, has participant_ids)
 interface CreateExpensePayload {
   time: string;

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTrips } from '../context/TripContext';
 import BottomNav, { saveLastPage } from '../components/BottomNav';
 import AddTripModal from '../components/AddTripModal';
+import TripInvitationNotification from '../components/TripInvitationNotification';
 import './HomePage.css';
 
 const TRIP_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
@@ -132,6 +133,9 @@ export default function HomePage() {
             Welcome, <strong>{user.username}</strong> 👋
           </div>
         )}
+
+        {/* Trip Invitations */}
+        <TripInvitationNotification onTripsUpdated={loadAllTripStats} />
 
         {/* Current Trip Selector */}
         {trips.length > 0 && (
