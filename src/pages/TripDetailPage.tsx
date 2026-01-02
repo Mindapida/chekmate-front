@@ -55,6 +55,66 @@ export default function TripDetailPage() {
     myConfirmed && 
     participants.every(p => confirmations[p.id] === true);
 
+  // Load participants from backend API
+  const loadParticipantsFromApi = useCallback(async () => {
+    if (!trip) return;
+    
+    try {
+      const apiParticipants = await tripsApi.getParticipants(trip.id);
+      console.log('📋 Loaded participants from API:', apiParticipants);
+      
+      const mapped: Participant[] = apiParticipants.map(p => ({
+        id: p.id,
+        name: p.username || p.name,
+        username: p.username || p.name,
+      }));
+      
+      setParticipants(mapped);
+      localStorage.setItem(`trip_participants_${trip.id}`, JSON.stringify(mapped));
+    } catch (error) {
+      console.error('Failed to load participants from API, using localStorage:', error);
+      const storedParticipants = localStorage.getItem(`trip_participants_${trip.id}`);
+      if (storedParticipants) {
+        setParticipants(JSON.parse(storedParticipants));
+      }
+    }
+  }, [trip]);
+
+  // Load settlement confirmations from server/storage
+  const loadConfirmations = useCallback(async () => {
+    if (!trip) return;
+    
+    try {
+      const response = await fetch(`/api/settlements/${trip.id}/confirmations`);
+      if (response.ok) {
+        const data = await response.json();
+        const confirmMap: { [oderId: number]: boolean } = {};
+        data.confirmations?.forEach((c: SettlementConfirmation) => {
+          confirmMap[c.oderId] = c.confirmed;
+        });
+        setConfirmations(confirmMap);
+        
+        const currentUserId = JSON.parse(localStorage.getItem('oder') || '{}').id;
+        if (currentUserId && confirmMap[currentUserId]) {
+          setMyConfirmed(true);
+        }
+        
+        setSettlementComplete(data.complete || false);
+        return;
+      }
+    } catch (error) {
+      console.log('Server not available, using local storage');
+    }
+    
+    const stored = localStorage.getItem(`${SETTLEMENT_CONFIRM_KEY}_${trip.id}`);
+    if (stored) {
+      const data = JSON.parse(stored);
+      setConfirmations(data.confirmations || {});
+      setMyConfirmed(data.myConfirmed || false);
+      setSettlementComplete(data.complete || false);
+    }
+  }, [trip]);
+
   // Load all trip data
   const loadTripData = useCallback(() => {
     if (!trip) return;
@@ -101,45 +161,6 @@ export default function TripDetailPage() {
     // Load settlement confirmations
     loadConfirmations();
   }, [trip, loadParticipantsFromApi, loadConfirmations]);
-  
-  // Load settlement confirmations from server/storage
-  const loadConfirmations = useCallback(async () => {
-    if (!trip) return;
-    
-    try {
-      // Try to fetch from server first
-      const response = await fetch(`/api/settlements/${trip.id}/confirmations`);
-      if (response.ok) {
-        const data = await response.json();
-        const confirmMap: { [oderId: number]: boolean } = {};
-        data.confirmations?.forEach((c: SettlementConfirmation) => {
-          confirmMap[c.oderId] = c.confirmed;
-        });
-        setConfirmations(confirmMap);
-        
-        // Check if current oder confirmed
-        const currentUserId = JSON.parse(localStorage.getItem('oder') || '{}').id;
-        if (currentUserId && confirmMap[currentUserId]) {
-          setMyConfirmed(true);
-        }
-        
-        // Check if settlement is complete
-        setSettlementComplete(data.complete || false);
-        return;
-      }
-    } catch (error) {
-      console.log('Server not available, using local storage');
-    }
-    
-    // Fallback to localStorage
-    const stored = localStorage.getItem(`${SETTLEMENT_CONFIRM_KEY}_${trip.id}`);
-    if (stored) {
-      const data = JSON.parse(stored);
-      setConfirmations(data.confirmations || {});
-      setMyConfirmed(data.myConfirmed || false);
-      setSettlementComplete(data.complete || false);
-    }
-  }, [trip]);
   
   // Handle my confirmation
   const handleConfirmSettlement = async () => {
@@ -268,33 +289,6 @@ export default function TripDetailPage() {
       console.error('Failed to add participant via API:', err);
     });
   };
-  
-  // Load participants from backend API
-  const loadParticipantsFromApi = useCallback(async () => {
-    if (!trip) return;
-    
-    try {
-      const apiParticipants = await tripsApi.getParticipants(trip.id);
-      console.log('📋 Loaded participants from API:', apiParticipants);
-      
-      const mapped: Participant[] = apiParticipants.map(p => ({
-        id: p.id,
-        name: p.username,
-        username: p.username,
-      }));
-      
-      setParticipants(mapped);
-      // Also update localStorage as backup
-      localStorage.setItem(`trip_participants_${trip.id}`, JSON.stringify(mapped));
-    } catch (error) {
-      console.error('Failed to load participants from API, using localStorage:', error);
-      // Fallback to localStorage
-      const storedParticipants = localStorage.getItem(`trip_participants_${trip.id}`);
-      if (storedParticipants) {
-        setParticipants(JSON.parse(storedParticipants));
-      }
-    }
-  }, [trip]);
 
   const handleRemoveParticipant = (participantId: number) => {
     const updated = participants.filter(p => p.id !== participantId);
