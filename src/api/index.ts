@@ -276,12 +276,34 @@ export const usersApi = {
   // Get user by exact username
   getByUsername: async (username: string): Promise<User | null> => {
     console.log('🔍 Looking up user by username:', username);
+    const url = `${API_BASE}/users/username/${encodeURIComponent(username)}`;
+    console.log('🌐 API URL:', url);
+    
     try {
-      const user = await apiClient.get<User>(`/users/username/${encodeURIComponent(username)}`);
+      const token = tokenManager.getToken();
+      console.log('🔑 Token exists:', !!token);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      });
+      
+      console.log('📡 Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('❌ Error response:', errorText);
+        return null;
+      }
+      
+      const user = await response.json();
       console.log('✅ Found user:', user);
       return user;
     } catch (error) {
-      console.log('⚠️ User not found:', username);
+      console.error('❌ Fetch error:', error);
       return null;
     }
   },
