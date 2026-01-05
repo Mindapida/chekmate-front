@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { tokenManager } from '../api/client';
 
 interface PhotoImageProps {
   photoId: number;
@@ -9,21 +10,8 @@ interface PhotoImageProps {
   onClick?: () => void;
 }
 
-// Generate URL patterns to try for loading images
-// Uses Vercel proxy to avoid CORS issues
-function getImageUrls(filePath: string): string[] {
-  // Clean up file path
-  const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
-  
-  return [
-    // 1. Through Vercel proxy (most reliable)
-    `/${cleanPath}`,
-    // 2. Without app/ prefix
-    `/${cleanPath.replace('app/', '')}`,
-    // 3. Just static path
-    `/static/${cleanPath.split('/').pop()}`,
-  ];
-}
+// Cache for blob URLs
+const blobCache: Record<string, string> = {};
 
 export default function PhotoImage({ 
   photoId, 
@@ -33,30 +21,99 @@ export default function PhotoImage({
   className = '',
   onClick 
 }: PhotoImageProps) {
-  const urls = getImageUrls(filePath);
-  const [urlIndex, setUrlIndex] = useState(0);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  console.log(`🖼️ PhotoImage ${photoId}: trying URL ${urlIndex + 1}/${urls.length}:`, urls[urlIndex]);
+  useEffect(() => {
+    const loadImage = async () => {
+      const cacheKey = `photo_${photoId}`;
+      
+      // Check cache
+      if (blobCache[cacheKey]) {
+        setImageUrl(blobCache[cacheKey]);
+        setLoading(false);
+        return;
+      }
 
-  const handleError = () => {
-    console.log(`  ❌ URL failed: ${urls[urlIndex]}`);
-    
-    if (urlIndex < urls.length - 1) {
-      // Try next URL
-      setUrlIndex(urlIndex + 1);
-    } else {
-      // All URLs failed
-      console.log(`  ❌ All URLs failed for photo ${photoId}`);
+      // Clean up file path
+      const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+      
+      // URL patterns to try (through Vercel proxy)
+      const urls = [
+        `/${cleanPath}`,
+        `/${cleanPath.replace('app/', '')}`,
+        `/static/${cleanPath.split('/').pop()}`,
+      ];
+
+      console.log(`🖼️ PhotoImage ${photoId}: Loading...`, { filePath, urls });
+
+      // Try each URL
+      for (const url of urls) {
+        try {
+          console.log(`  Trying: ${url}`);
+          const response = await fetch(url);
+          
+          if (response.ok) {
+            const contentType = response.headers.get('content-type');
+            
+            if (contentType?.startsWith('image/')) {
+              const blob = await response.blob();
+              const blobUrl = URL.createObjectURL(blob);
+              blobCache[cacheKey] = blobUrl;
+              setImageUrl(blobUrl);
+              setLoading(false);
+              console.log(`  ✅ Success: ${url}`);
+              return;
+            }
+          }
+        } catch (e) {
+          console.log(`  ❌ Failed: ${url}`);
+        }
+      }
+
+      // Try API endpoint with auth token
+      try {
+        console.log(`  Trying API: /api/photos/${photoId}/image`);
+        const token = tokenManager.getToken();
+        const response = await fetch(`/api/photos/${photoId}/image`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        });
+        
+        if (response.ok) {
+          const contentType = response.headers.get('content-type');
+          if (contentType?.startsWith('image/')) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            blobCache[cacheKey] = blobUrl;
+            setImageUrl(blobUrl);
+            setLoading(false);
+            console.log(`  ✅ API Success`);
+            return;
+          }
+        }
+      } catch (e) {
+        console.log(`  ❌ API Failed`);
+      }
+
+      // All failed
+      console.log(`  ❌ All attempts failed for photo ${photoId}`);
       setError(true);
-    }
-  };
+      setLoading(false);
+    };
 
-  const handleLoad = () => {
-    console.log(`  ✅ Image loaded: ${urls[urlIndex]}`);
-  };
+    loadImage();
+  }, [photoId, filePath]);
 
-  if (error) {
+  if (loading) {
+    return (
+      <div className={`photo-loading ${className}`} onClick={onClick}>
+        <div className="loading-spinner">⏳</div>
+      </div>
+    );
+  }
+
+  if (error || !imageUrl) {
     return (
       <div className={`photo-error ${className}`} onClick={onClick}>
         <div className="error-icon">🖼️</div>
@@ -67,12 +124,14 @@ export default function PhotoImage({
 
   return (
     <img 
-      src={urls[urlIndex]} 
+      src={imageUrl} 
       alt={alt || fileName}
       className={className}
       onClick={onClick}
-      onError={handleError}
-      onLoad={handleLoad}
+      onError={() => {
+        delete blobCache[`photo_${photoId}`];
+        setError(true);
+      }}
     />
   );
 }
