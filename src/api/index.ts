@@ -322,11 +322,15 @@ interface DiaryEntryResponse {
 }
 
 // Backend base URL for constructing photo URLs
+// Use relative path to go through Vercel proxy (avoids CORS issues)
 const getBackendUrl = () => {
-  // For static files (photos), we need the actual backend URL
-  // The backend is at thistimeapp.com
-  const backendStaticUrl = import.meta.env.VITE_BACKEND_URL || 'https://thistimeapp.com';
-  console.log('🔗 Backend URL for photos:', backendStaticUrl);
+  // In production (Vercel), use relative paths to proxy through vercel.json rewrites
+  // In development, use the actual backend URL
+  const isDev = import.meta.env.DEV;
+  const backendStaticUrl = isDev 
+    ? (import.meta.env.VITE_BACKEND_URL || 'https://thistimeapp.com')
+    : ''; // Empty string = relative path, proxied by Vercel
+  console.log('🔗 Backend URL for photos:', backendStaticUrl || '(using Vercel proxy)');
   return backendStaticUrl;
 };
 
@@ -537,7 +541,7 @@ export const diaryApi = {
   },
   
   // Helper: construct full photo URL from file_path
-  getPhotoUrl: (filePath: string, photoId?: number): string => {
+  getPhotoUrl: (filePath: string, _photoId?: number): string => {
     const backendUrl = getBackendUrl();
     
     // Handle both absolute and relative paths
@@ -546,23 +550,17 @@ export const diaryApi = {
       return filePath;
     }
     
-    // Try API endpoint first if we have photoId
-    // This requires authentication and might work better than static files
-    if (photoId) {
-      const apiUrl = `${API_BASE}/photos/${photoId}`;
-      console.log('🖼️ Photo URL via API:', apiUrl);
-      return apiUrl;
-    }
-    
-    // Fallback to static file URL
+    // Use static file URL - goes through Vercel proxy in production
+    // Remove leading slash if present
     let cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
     
-    // Try different path formats
-    const fullUrl = `${backendUrl}/${cleanPath}`;
+    // Construct URL - in production this is relative (proxied by Vercel)
+    // In dev this goes directly to backend
+    const fullUrl = backendUrl ? `${backendUrl}/${cleanPath}` : `/${cleanPath}`;
     
     console.log('🖼️ Photo URL constructed:', { 
       originalPath: filePath, 
-      backendUrl, 
+      backendUrl: backendUrl || '(Vercel proxy)', 
       fullUrl
     });
     
