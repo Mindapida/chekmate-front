@@ -320,7 +320,7 @@ export default function CalendarPage() {
           <div className="participants-bar">
             <span className="participants-label">👥 Participants:</span>
             <div className="participants-list">
-              {participants.map((p, idx) => (
+              {participants.map((p) => (
                 <span 
                   key={p.id} 
                   className={`participant-chip ${p.username === user?.username ? 'me' : ''}`}
@@ -439,7 +439,6 @@ export default function CalendarPage() {
             const photoData = getPhotoDataForDay(selectedDate.getDate());
             if (!photoData || photoData.photos.length === 0) return null;
             
-            const myPhotos = photoData.photos.filter(p => p.author === user?.username);
             const sharedPhotos = photoData.photos.filter(p => p.author !== user?.username);
             
             return (
