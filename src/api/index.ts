@@ -547,10 +547,30 @@ export const diaryApi = {
     }
     
     // Remove leading slash if present to avoid double slashes
-    const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+    let cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+    
+    // Try different path formats - backend might serve static files differently
+    // Option 1: app/static/... -> /app/static/...
+    // Option 2: app/static/... -> /static/... (remove app/ prefix)
+    // Option 3: Direct file access via API
+    
+    // If path starts with 'app/', try removing it as backend might serve at /static/
+    if (cleanPath.startsWith('app/')) {
+      cleanPath = cleanPath.substring(4); // Remove 'app/' prefix -> 'static/...'
+    }
+    
     const fullUrl = `${backendUrl}/${cleanPath}`;
     
-    console.log('🖼️ Photo URL constructed:', { filePath, backendUrl, fullUrl });
+    console.log('🖼️ Photo URL constructed:', { 
+      originalPath: filePath, 
+      cleanPath,
+      backendUrl, 
+      fullUrl,
+      // Also log alternative URLs for debugging
+      altUrl1: `${backendUrl}/${filePath}`,
+      altUrl2: `${backendUrl}/static/${filePath.split('/').pop()}`
+    });
+    
     return fullUrl;
   },
 };
