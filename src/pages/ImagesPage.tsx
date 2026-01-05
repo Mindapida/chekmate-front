@@ -374,19 +374,27 @@ export default function ImagesPage() {
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid-view">
-            {photos.map((photo) => (
-              <div 
-                key={photo.id} 
-                className="grid-photo"
-                onClick={() => openPhoto(photo)}
-              >
-                <img src={photo.photoUrl} alt="" />
-                {photo.type === 'expense' && (
-                  <span className="photo-type-badge expense">💰</span>
-                )}
-                <span className="photo-author-badge">{photo.author}</span>
-              </div>
-            ))}
+            {photos.map((photo) => {
+              const isMyPhoto = photo.author === user?.username;
+              return (
+                <div 
+                  key={photo.id} 
+                  className={`grid-photo ${!isMyPhoto ? 'shared-photo' : ''}`}
+                  onClick={() => openPhoto(photo)}
+                >
+                  <img src={photo.photoUrl} alt="" />
+                  {photo.type === 'expense' && (
+                    <span className="photo-type-badge expense">💰</span>
+                  )}
+                  {!isMyPhoto && (
+                    <span className="photo-shared-indicator">👥</span>
+                  )}
+                  <span className={`photo-author-badge ${!isMyPhoto ? 'other-author' : ''}`}>
+                    {isMyPhoto ? 'Me' : photo.author}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="timeline-view">
@@ -407,27 +415,36 @@ export default function ImagesPage() {
 
                 {/* Photos Grid */}
                 <div className="day-photos">
-                  {groupedPhotos[date].map((photo) => (
-                    <div key={photo.id} className="day-photo-wrapper">
-                      <div 
-                        className="day-photo"
-                        onClick={() => openPhoto(photo)}
-                      >
-                        <img src={photo.photoUrl} alt="" />
-                        {photo.type === 'expense' && photo.expenseInfo && (
-                          <div className="photo-expense-label">
-                            <span>{getCategoryEmoji(photo.expenseInfo.category)}</span>
-                            <span>{photo.expenseInfo.amount.toLocaleString()}</span>
+                  {groupedPhotos[date].map((photo) => {
+                    const isMyPhoto = photo.author === user?.username;
+                    return (
+                      <div key={photo.id} className={`day-photo-wrapper ${!isMyPhoto ? 'shared-photo-wrapper' : ''}`}>
+                        <div 
+                          className={`day-photo ${!isMyPhoto ? 'shared-photo' : ''}`}
+                          onClick={() => openPhoto(photo)}
+                        >
+                          <img src={photo.photoUrl} alt="" />
+                          {photo.type === 'expense' && photo.expenseInfo && (
+                            <div className="photo-expense-label">
+                              <span>{getCategoryEmoji(photo.expenseInfo.category)}</span>
+                              <span>{photo.expenseInfo.amount.toLocaleString()}</span>
+                            </div>
+                          )}
+                          {!isMyPhoto && (
+                            <span className="photo-shared-indicator">👥</span>
+                          )}
+                          <span className={`photo-author-label ${!isMyPhoto ? 'other-author' : ''}`}>
+                            {isMyPhoto ? 'Me' : photo.author}
+                          </span>
+                        </div>
+                        {photo.memo && (
+                          <div className="photo-memo-preview">
+                            <span className="memo-text">{photo.memo}</span>
                           </div>
                         )}
-                        <span className="photo-author-label">{photo.author}</span>
                       </div>
-                      {photo.memo && (
-                        <div className="photo-memo-preview">
-                          <span className="memo-text">{photo.memo}</span>
-                        </div>
-                      )}
-                    </div>
+                    );
+                  }
                   ))}
                 </div>
               </div>

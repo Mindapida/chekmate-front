@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
+import { useAuth } from '../context/AuthContext';
 import { expensesApi, tripsApi, ocrApi } from '../api';
 import type { Expense, TripParticipant } from '../types/api';
 import './ExpensePage.css';
@@ -34,6 +35,7 @@ export default function ExpensePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentTrip } = useTrips();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const dateParam = searchParams.get('date') || new Date().toISOString().split('T')[0];
@@ -504,26 +506,39 @@ export default function ExpensePage() {
               const splits = expenseSplits[expense.id] || [];
               const isEditing = editingSplitId === expense.id;
               
+              // Determine payer name - show actual payer username from API
+              const payerName = expense.payer_username || 
+                (expense.payer_id === user?.id ? user?.username : null) ||
+                'Unknown';
+              const isMyExpense = expense.payer_id === user?.id || expense.payer_username === user?.username;
+              const participantCount = expense.participants?.length || splits.length;
+              
               return (
                 <div key={expense.id} className="expense-card-wrapper">
-                  <div className="expense-card">
-                    <div className="expense-time">{expense.time}</div>
+                  <div className={`expense-card ${!isMyExpense ? 'shared-expense' : ''}`}>
+                    <div className="expense-time">{expense.time || '--:--'}</div>
                     <div className="expense-category">{getCategoryEmoji(expense.category)}</div>
                     <div className="expense-details">
                       <div className="amount-row">
                         <span className="original">{expense.amount.toLocaleString()} {expense.currency}</span>
                         <span className="arrow">→</span>
-                        <span className="converted">{convertToKRW(expense.amount, expense.currency).toLocaleString()} KRW</span>
+                        <span className="converted">{(expense.amount_krw || convertToKRW(expense.amount, expense.currency)).toLocaleString()} KRW</span>
                       </div>
-                      <div className="place">{expense.place || 'No place'}</div>
+                      <div className="place">{expense.place || expense.description || 'No place'}</div>
+                      {!isMyExpense && (
+                        <div className="shared-by">
+                          <span className="shared-badge">👥 Shared</span>
+                          <span className="shared-author">by {payerName}</span>
+                        </div>
+                      )}
                     </div>
                     <div 
                       className={`payer-info ${isEditing ? 'active' : ''}`}
                       onClick={() => setEditingSplitId(isEditing ? null : expense.id)}
                     >
-                      <span className="payer-name">Me</span>
+                      <span className="payer-name">{isMyExpense ? 'Me' : payerName}</span>
                       <span className="split-count">
-                        {splits.length > 0 ? `÷${splits.length}` : '👥'}
+                        {participantCount > 0 ? `÷${participantCount}` : '👥'}
                       </span>
                     </div>
                   </div>

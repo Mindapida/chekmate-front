@@ -210,6 +210,35 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+/* Shared expense styling - from other participants */
+.expense-card.shared-expense {
+  background: linear-gradient(135deg, #F0FDFC 0%, #F5F3FF 100%);
+  border-left: 3px solid #4ECDC4;
+}
+
+.shared-by {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.shared-badge {
+  background: linear-gradient(135deg, #4ECDC4 0%, #45B7D1 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.shared-author {
+  font-size: 11px;
+  color: #6B7280;
+  font-style: italic;
 }
 
 .expense-time {
