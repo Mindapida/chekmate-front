@@ -94,7 +94,7 @@ export default function CalendarPage() {
           entries.forEach(entry => {
             entry.photos.forEach(photo => {
               photos.push({
-                url: diaryApi.getPhotoUrl(photo.file_path),
+                url: diaryApi.getPhotoUrl(photo.file_path, photo.id),
                 author: entry.username,
                 isExpense: !!entry.expense_id,
               });

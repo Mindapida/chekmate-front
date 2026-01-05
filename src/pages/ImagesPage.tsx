@@ -152,7 +152,7 @@ export default function ImagesPage() {
                 id: `${entry.expense_id ? 'expense' : 'dump'}_${dateStr}_${photo.id}`,
                 photoId: photo.id,
                 type: entry.expense_id ? 'expense' : 'dump',
-                photoUrl: diaryApi.getPhotoUrl(photo.file_path),
+                photoUrl: diaryApi.getPhotoUrl(photo.file_path, photo.id),
                 date: dateStr,
                 author: entry.username,
                 memo: entry.memo || undefined,

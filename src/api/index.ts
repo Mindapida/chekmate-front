@@ -537,7 +537,7 @@ export const diaryApi = {
   },
   
   // Helper: construct full photo URL from file_path
-  getPhotoUrl: (filePath: string): string => {
+  getPhotoUrl: (filePath: string, photoId?: number): string => {
     const backendUrl = getBackendUrl();
     
     // Handle both absolute and relative paths
@@ -546,32 +546,64 @@ export const diaryApi = {
       return filePath;
     }
     
-    // Remove leading slash if present to avoid double slashes
-    let cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
-    
-    // Try different path formats - backend might serve static files differently
-    // Option 1: app/static/... -> /app/static/...
-    // Option 2: app/static/... -> /static/... (remove app/ prefix)
-    // Option 3: Direct file access via API
-    
-    // If path starts with 'app/', try removing it as backend might serve at /static/
-    if (cleanPath.startsWith('app/')) {
-      cleanPath = cleanPath.substring(4); // Remove 'app/' prefix -> 'static/...'
+    // Try API endpoint first if we have photoId
+    // This requires authentication and might work better than static files
+    if (photoId) {
+      const apiUrl = `${API_BASE}/photos/${photoId}`;
+      console.log('🖼️ Photo URL via API:', apiUrl);
+      return apiUrl;
     }
     
+    // Fallback to static file URL
+    let cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+    
+    // Try different path formats
     const fullUrl = `${backendUrl}/${cleanPath}`;
     
     console.log('🖼️ Photo URL constructed:', { 
       originalPath: filePath, 
-      cleanPath,
       backendUrl, 
-      fullUrl,
-      // Also log alternative URLs for debugging
-      altUrl1: `${backendUrl}/${filePath}`,
-      altUrl2: `${backendUrl}/static/${filePath.split('/').pop()}`
+      fullUrl
     });
     
     return fullUrl;
+  },
+  
+  // Get photo as blob via API (with authentication)
+  getPhotoBlob: async (photoId: number): Promise<string> => {
+    try {
+      const token = tokenManager.getToken();
+      const response = await fetch(`${API_BASE}/photos/${photoId}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch photo: ${response.status}`);
+      }
+      
+      // Check if response is JSON (photo metadata) or blob (actual image)
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType?.includes('image')) {
+        // Direct image response
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        console.log('🖼️ Photo blob URL created:', url);
+        return url;
+      } else {
+        // JSON response with photo metadata
+        const data = await response.json();
+        console.log('🖼️ Photo metadata:', data);
+        // Return file_path based URL
+        if (data.file_path) {
+          return `${getBackendUrl()}/${data.file_path}`;
+        }
+        throw new Error('No file_path in response');
+      }
+    } catch (error) {
+      console.error('❌ Failed to get photo blob:', error);
+      throw error;
+    }
   },
 };
 

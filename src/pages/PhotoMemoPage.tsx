@@ -345,8 +345,9 @@ export default function PhotoMemoPage() {
                     {photos.length > 0 && (
                       <div className="expense-photos">
                         {photos.map((photo) => {
-                          const photoUrl = diaryApi.getPhotoUrl(photo.file_path);
-                          console.log('🖼️ Expense photo:', { expenseId: expense.id, file_path: photo.file_path, url: photoUrl });
+                          // Use photo ID for API-based URL
+                          const photoUrl = diaryApi.getPhotoUrl(photo.file_path, photo.id);
+                          console.log('🖼️ Expense photo:', { expenseId: expense.id, photoId: photo.id, file_path: photo.file_path, url: photoUrl });
                           return (
                             <div key={photo.id} className="photo-thumb">
                               <img 
@@ -398,7 +399,8 @@ export default function PhotoMemoPage() {
           
           <div className="dump-grid">
             {dumpPhotos.map((photo) => {
-              const photoUrl = diaryApi.getPhotoUrl(photo.file_path);
+              // Use photo ID for API-based URL
+              const photoUrl = diaryApi.getPhotoUrl(photo.file_path, photo.id);
               console.log('🖼️ Dump photo:', { id: photo.id, file_path: photo.file_path, file_name: photo.file_name, url: photoUrl });
               return (
                 <div key={photo.id} className="dump-photo">
