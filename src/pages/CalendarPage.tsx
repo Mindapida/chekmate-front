@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
 import { useAuth } from '../context/AuthContext';
 import { diaryApi, expensesApi, tripsApi } from '../api';
+import PhotoImage from '../components/PhotoImage';
 import BottomNav, { saveLastPage } from '../components/BottomNav';
 import './CalendarPage.css';
+import '../components/PhotoImage.css';
 
 // Mood emoji icons: happy, cool, party, heart, rain, sunny, sad (기쁨, 선글라스, 축하, 하트, 비, 맑음, 슬픔)
 const MOOD_EMOJIS = ['😊', '😎', '🥳', '❤️', '🌧️', '☀️', '😢'];
@@ -19,8 +21,16 @@ interface EmojiData {
 }
 
 // Photo preview data for each date
+interface PhotoData {
+  photoId: number;
+  filePath: string;
+  fileName: string;
+  author: string;
+  isExpense: boolean;
+}
+
 interface DatePhotoData {
-  photos: { url: string; author: string; isExpense: boolean }[];
+  photos: PhotoData[];
   hasExpense: boolean;
   expenseCount: number;
 }
@@ -89,12 +99,14 @@ export default function CalendarPage() {
             })));
           }
           
-          const photos: { url: string; author: string; isExpense: boolean }[] = [];
+          const photos: PhotoData[] = [];
           
           entries.forEach(entry => {
             entry.photos.forEach(photo => {
               photos.push({
-                url: diaryApi.getPhotoUrl(photo.file_path, photo.id),
+                photoId: photo.id,
+                filePath: photo.file_path,
+                fileName: photo.file_name,
                 author: entry.username,
                 isExpense: !!entry.expense_id,
               });
@@ -394,13 +406,11 @@ export default function CalendarPage() {
                   {/* Photo thumbnail preview (shared from all participants!) */}
                   {hasPhotos && (
                     <div className="day-photo-preview">
-                      <img 
-                        src={photoData.photos[0].url} 
-                        alt="" 
-                        onError={(e) => {
-                          console.error('❌ Calendar photo failed:', photoData.photos[0].url);
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
+                      <PhotoImage
+                        photoId={photoData.photos[0].photoId}
+                        filePath={photoData.photos[0].filePath}
+                        fileName={photoData.photos[0].fileName}
+                        className="calendar-day-photo"
                       />
                       {photoData.photos.length > 1 && (
                         <span className="photo-count">+{photoData.photos.length - 1}</span>
@@ -458,13 +468,11 @@ export default function CalendarPage() {
                       key={idx} 
                       className={`preview-photo ${photo.author !== user?.username ? 'shared' : ''}`}
                     >
-                      <img 
-                        src={photo.url} 
-                        alt="" 
-                        onError={(e) => {
-                          console.error('❌ Preview photo failed:', photo.url);
-                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><rect fill="%23f0f0f0" width="60" height="60"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999" font-size="8">Error</text></svg>';
-                        }}
+                      <PhotoImage
+                        photoId={photo.photoId}
+                        filePath={photo.filePath}
+                        fileName={photo.fileName}
+                        className="preview-photo-img"
                       />
                       <span className="photo-author">{photo.author === user?.username ? 'Me' : photo.author}</span>
                       {photo.isExpense && <span className="expense-tag">💰</span>}

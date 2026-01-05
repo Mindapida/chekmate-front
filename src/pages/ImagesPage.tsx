@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
 import { useAuth } from '../context/AuthContext';
 import { diaryApi, expensesApi, commentsApi, tripsApi } from '../api';
+import PhotoImage from '../components/PhotoImage';
 import BottomNav, { saveLastPage } from '../components/BottomNav';
 import './ImagesPage.css';
+import '../components/PhotoImage.css';
 
 // Types for diary photos from API
 interface DiaryPhoto {
@@ -33,7 +35,8 @@ interface PhotoEntry {
   id: string;
   photoId: number;
   type: 'expense' | 'dump';
-  photoUrl: string;
+  filePath: string;
+  fileName: string;
   date: string;
   author: string;
   expenseId?: number;
@@ -152,7 +155,8 @@ export default function ImagesPage() {
                 id: `${entry.expense_id ? 'expense' : 'dump'}_${dateStr}_${photo.id}`,
                 photoId: photo.id,
                 type: entry.expense_id ? 'expense' : 'dump',
-                photoUrl: diaryApi.getPhotoUrl(photo.file_path, photo.id),
+                filePath: photo.file_path,
+                fileName: photo.file_name,
                 date: dateStr,
                 author: entry.username,
                 memo: entry.memo || undefined,
@@ -439,13 +443,11 @@ export default function ImagesPage() {
                   className={`grid-photo ${!isMyPhoto ? 'shared-photo' : ''}`}
                   onClick={() => openPhoto(photo)}
                 >
-                  <img 
-                    src={photo.photoUrl} 
-                    alt="" 
-                    onError={(e) => {
-                      console.error('❌ Image failed to load:', photo.photoUrl);
-                      (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999" font-size="12">No Image</text></svg>';
-                    }}
+                  <PhotoImage
+                    photoId={photo.photoId}
+                    filePath={photo.filePath}
+                    fileName={photo.fileName}
+                    className="grid-photo-img"
                   />
                   {photo.type === 'expense' && (
                     <span className="photo-type-badge expense">💰</span>
@@ -487,13 +489,11 @@ export default function ImagesPage() {
                           className={`day-photo ${!isMyPhoto ? 'shared-photo' : ''}`}
                           onClick={() => openPhoto(photo)}
                         >
-                          <img 
-                            src={photo.photoUrl} 
-                            alt="" 
-                            onError={(e) => {
-                              console.error('❌ Image failed to load:', photo.photoUrl);
-                              (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999" font-size="12">No Image</text></svg>';
-                            }}
+                          <PhotoImage
+                            photoId={photo.photoId}
+                            filePath={photo.filePath}
+                            fileName={photo.fileName}
+                            className="day-photo-img"
                           />
                           {photo.type === 'expense' && photo.expenseInfo && (
                             <div className="photo-expense-label">
@@ -550,13 +550,11 @@ export default function ImagesPage() {
                 </button>
               )}
               
-              <img 
-                src={selectedPhoto.photoUrl} 
-                alt="" 
-                onError={(e) => {
-                  console.error('❌ Modal image failed to load:', selectedPhoto.photoUrl);
-                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect fill="%23f0f0f0" width="300" height="300"/><text x="50%" y="45%" text-anchor="middle" fill="%23999" font-size="16">Image not found</text><text x="50%" y="55%" text-anchor="middle" fill="%23ccc" font-size="10">' + encodeURIComponent(selectedPhoto.photoUrl.substring(0, 50)) + '</text></svg>';
-                }}
+              <PhotoImage
+                photoId={selectedPhoto.photoId}
+                filePath={selectedPhoto.filePath}
+                fileName={selectedPhoto.fileName}
+                className="modal-photo-img"
               />
               
               {/* Right Arrow */}
