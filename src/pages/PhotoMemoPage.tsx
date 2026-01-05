@@ -344,17 +344,31 @@ export default function PhotoMemoPage() {
                     {/* Expense Photos */}
                     {photos.length > 0 && (
                       <div className="expense-photos">
-                        {photos.map((photo) => (
-                          <div key={photo.id} className="photo-thumb">
-                            <img src={diaryApi.getPhotoUrl(photo.file_path)} alt={photo.file_name} />
-                            <button 
-                              className="remove-photo"
-                              onClick={() => removeExpensePhoto(expense.id)}
-                              disabled={saving}
-                            >×</button>
-                            <span className="photo-author">{user?.username === diaryEntries.find(e => e.expense_id === expense.id)?.username ? 'You' : diaryEntries.find(e => e.expense_id === expense.id)?.username}</span>
-                          </div>
-                        ))}
+                        {photos.map((photo) => {
+                          const photoUrl = diaryApi.getPhotoUrl(photo.file_path);
+                          console.log('🖼️ Expense photo:', { expenseId: expense.id, file_path: photo.file_path, url: photoUrl });
+                          return (
+                            <div key={photo.id} className="photo-thumb">
+                              <img 
+                                src={photoUrl} 
+                                alt={photo.file_name}
+                                onError={(e) => {
+                                  console.error('❌ Expense photo failed:', { file_path: photo.file_path, url: photoUrl });
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  target.parentElement?.classList.add('photo-error');
+                                }}
+                              />
+                              <span className="photo-filename">{photo.file_name}</span>
+                              <button 
+                                className="remove-photo"
+                                onClick={() => removeExpensePhoto(expense.id)}
+                                disabled={saving}
+                              >×</button>
+                              <span className="photo-author">{user?.username === diaryEntries.find(e => e.expense_id === expense.id)?.username ? 'You' : diaryEntries.find(e => e.expense_id === expense.id)?.username}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                     {/* Expense Memo */}
@@ -383,16 +397,31 @@ export default function PhotoMemoPage() {
           <p className="section-hint">Add up to 10 photos from your day! (Shared with all participants)</p>
           
           <div className="dump-grid">
-            {dumpPhotos.map((photo) => (
-              <div key={photo.id} className="dump-photo">
-                <img src={diaryApi.getPhotoUrl(photo.file_path)} alt={photo.file_name} />
-                <button 
-                  className="remove-photo"
-                  onClick={() => removeDumpPhoto(photo.id)}
-                  disabled={saving}
-                >×</button>
-              </div>
-            ))}
+            {dumpPhotos.map((photo) => {
+              const photoUrl = diaryApi.getPhotoUrl(photo.file_path);
+              console.log('🖼️ Dump photo:', { id: photo.id, file_path: photo.file_path, file_name: photo.file_name, url: photoUrl });
+              return (
+                <div key={photo.id} className="dump-photo">
+                  <img 
+                    src={photoUrl} 
+                    alt={photo.file_name}
+                    onError={(e) => {
+                      console.error('❌ Photo failed to load:', { file_path: photo.file_path, url: photoUrl });
+                      // Show filename as fallback
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.parentElement?.classList.add('photo-error');
+                    }}
+                  />
+                  <span className="photo-filename">{photo.file_name}</span>
+                  <button 
+                    className="remove-photo"
+                    onClick={() => removeDumpPhoto(photo.id)}
+                    disabled={saving}
+                  >×</button>
+                </div>
+              );
+            })}
             {dumpPhotos.length < 10 && (
               <button className="add-dump-btn" onClick={handleDumpClick} disabled={saving}>
                 <span className="add-icon">+</span>

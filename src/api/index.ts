@@ -343,6 +343,19 @@ export const diaryApi = {
     try {
       const entries = await apiClient.get<DiaryEntryResponse[]>(`/diary/${tripId}/${date}`);
       console.log('✅ Diary entries loaded:', entries.length);
+      
+      // Debug: Log full entry details including photos
+      entries.forEach((entry, idx) => {
+        console.log(`📸 Entry ${idx}:`, {
+          id: entry.id,
+          user_id: entry.user_id,
+          username: entry.username,
+          expense_id: entry.expense_id,
+          photoCount: entry.photos?.length || 0,
+          photos: entry.photos?.map(p => ({ id: p.id, file_path: p.file_path, file_name: p.file_name }))
+        });
+      });
+      
       return entries;
     } catch (error) {
       console.error('❌ Failed to get diary entries:', error);
