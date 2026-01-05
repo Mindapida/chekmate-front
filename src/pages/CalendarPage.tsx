@@ -398,6 +398,7 @@ export default function CalendarPage() {
                         src={photoData.photos[0].url} 
                         alt="" 
                         onError={(e) => {
+                          console.error('❌ Calendar photo failed:', photoData.photos[0].url);
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
                       />
@@ -457,7 +458,14 @@ export default function CalendarPage() {
                       key={idx} 
                       className={`preview-photo ${photo.author !== user?.username ? 'shared' : ''}`}
                     >
-                      <img src={photo.url} alt="" />
+                      <img 
+                        src={photo.url} 
+                        alt="" 
+                        onError={(e) => {
+                          console.error('❌ Preview photo failed:', photo.url);
+                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><rect fill="%23f0f0f0" width="60" height="60"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999" font-size="8">Error</text></svg>';
+                        }}
+                      />
                       <span className="photo-author">{photo.author === user?.username ? 'Me' : photo.author}</span>
                       {photo.isExpense && <span className="expense-tag">💰</span>}
                     </div>

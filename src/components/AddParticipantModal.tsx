@@ -17,7 +17,7 @@ interface AddParticipantModalProps {
 export default function AddParticipantModal({ 
   isOpen, 
   onClose, 
-  onAdd,
+  onAdd, 
   existingParticipantIds,
 }: AddParticipantModalProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -164,21 +164,21 @@ export default function AddParticipantModal({
               <p>Searching...</p>
             </div>
           ) : foundUser ? (
-            <button
+              <button
               className="user-item found"
               onClick={() => handleSelectUser(foundUser)}
-            >
-              <div className="user-avatar">
+              >
+                <div className="user-avatar">
                 {foundUser.username.charAt(0).toUpperCase()}
               </div>
               <div className="user-info">
                 <span className="user-name">{foundUser.username}</span>
                 <span className="user-hint">Click to add</span>
-              </div>
-              <svg className="add-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M10 4V16M4 10H16" stroke="#2B7FFF" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </button>
+                </div>
+                <svg className="add-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M10 4V16M4 10H16" stroke="#2B7FFF" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
           ) : hasSearched && !error ? (
             <div className="no-users">
               <span>👤</span>

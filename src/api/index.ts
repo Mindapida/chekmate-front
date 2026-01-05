@@ -326,6 +326,7 @@ const getBackendUrl = () => {
   // For static files (photos), we need the actual backend URL
   // The backend is at thistimeapp.com
   const backendStaticUrl = import.meta.env.VITE_BACKEND_URL || 'https://thistimeapp.com';
+  console.log('🔗 Backend URL for photos:', backendStaticUrl);
   return backendStaticUrl;
 };
 
@@ -525,11 +526,19 @@ export const diaryApi = {
   // Helper: construct full photo URL from file_path
   getPhotoUrl: (filePath: string): string => {
     const backendUrl = getBackendUrl();
+    
     // Handle both absolute and relative paths
     if (filePath.startsWith('http')) {
+      console.log('🖼️ Photo URL (already absolute):', filePath);
       return filePath;
     }
-    return `${backendUrl}/${filePath}`;
+    
+    // Remove leading slash if present to avoid double slashes
+    const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+    const fullUrl = `${backendUrl}/${cleanPath}`;
+    
+    console.log('🖼️ Photo URL constructed:', { filePath, backendUrl, fullUrl });
+    return fullUrl;
   },
 };
 

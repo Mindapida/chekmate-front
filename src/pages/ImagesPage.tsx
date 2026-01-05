@@ -439,7 +439,14 @@ export default function ImagesPage() {
                   className={`grid-photo ${!isMyPhoto ? 'shared-photo' : ''}`}
                   onClick={() => openPhoto(photo)}
                 >
-                  <img src={photo.photoUrl} alt="" />
+                  <img 
+                    src={photo.photoUrl} 
+                    alt="" 
+                    onError={(e) => {
+                      console.error('❌ Image failed to load:', photo.photoUrl);
+                      (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999" font-size="12">No Image</text></svg>';
+                    }}
+                  />
                   {photo.type === 'expense' && (
                     <span className="photo-type-badge expense">💰</span>
                   )}
@@ -480,7 +487,14 @@ export default function ImagesPage() {
                           className={`day-photo ${!isMyPhoto ? 'shared-photo' : ''}`}
                           onClick={() => openPhoto(photo)}
                         >
-                          <img src={photo.photoUrl} alt="" />
+                          <img 
+                            src={photo.photoUrl} 
+                            alt="" 
+                            onError={(e) => {
+                              console.error('❌ Image failed to load:', photo.photoUrl);
+                              (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999" font-size="12">No Image</text></svg>';
+                            }}
+                          />
                           {photo.type === 'expense' && photo.expenseInfo && (
                             <div className="photo-expense-label">
                               <span>{getCategoryEmoji(photo.expenseInfo.category)}</span>
@@ -536,7 +550,14 @@ export default function ImagesPage() {
                 </button>
               )}
               
-              <img src={selectedPhoto.photoUrl} alt="" />
+              <img 
+                src={selectedPhoto.photoUrl} 
+                alt="" 
+                onError={(e) => {
+                  console.error('❌ Modal image failed to load:', selectedPhoto.photoUrl);
+                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect fill="%23f0f0f0" width="300" height="300"/><text x="50%" y="45%" text-anchor="middle" fill="%23999" font-size="16">Image not found</text><text x="50%" y="55%" text-anchor="middle" fill="%23ccc" font-size="10">' + encodeURIComponent(selectedPhoto.photoUrl.substring(0, 50)) + '</text></svg>';
+                }}
+              />
               
               {/* Right Arrow */}
               {selectedPhotoIndex < photos.length - 1 && (

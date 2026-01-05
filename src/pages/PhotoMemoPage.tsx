@@ -55,9 +55,9 @@ export default function PhotoMemoPage() {
   // Load data from backend
   const loadData = useCallback(async () => {
     if (!currentTrip) return;
-    setLoading(true);
+      setLoading(true);
     
-    try {
+      try {
       // Load expenses from API
       const expData = await expensesApi.getByDate(currentTrip.id, selectedDate);
       setExpenses(expData);
@@ -136,9 +136,9 @@ export default function PhotoMemoPage() {
       alert('Failed to upload photo. Please try again.');
     } finally {
       setSaving(false);
-      setSelectedExpense(null);
-      setActiveUploadType(null);
-      e.target.value = '';
+    setSelectedExpense(null);
+    setActiveUploadType(null);
+    e.target.value = '';
     }
   };
 
@@ -200,7 +200,7 @@ export default function PhotoMemoPage() {
         }
       }
       
-      navigate('/calendar');
+    navigate('/calendar');
     } catch (error) {
       console.error('Failed to save:', error);
       alert('Failed to save. Please try again.');
@@ -426,8 +426,8 @@ export default function PhotoMemoPage() {
             </>
           ) : (
             <>
-              <span>✓</span>
-              <span>SAVE & CLOSE</span>
+          <span>✓</span>
+          <span>SAVE & CLOSE</span>
             </>
           )}
         </button>
