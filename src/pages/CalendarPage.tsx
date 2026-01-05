@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
 import { useAuth } from '../context/AuthContext';
-import { diaryApi, expensesApi } from '../api';
+import { diaryApi, expensesApi, tripsApi } from '../api';
 import BottomNav, { saveLastPage } from '../components/BottomNav';
 import './CalendarPage.css';
 
@@ -34,6 +34,7 @@ export default function CalendarPage() {
   const [emojiData, setEmojiData] = useState<EmojiData>({});
   const [datePhotos, setDatePhotos] = useState<{ [date: string]: DatePhotoData }>({});
   const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [participants, setParticipants] = useState<{ id: number; username: string }[]>([]);
 
   // Save current page on mount
   useEffect(() => {
@@ -63,6 +64,9 @@ export default function CalendarPage() {
     setLoadingPhotos(true);
     const photoData: { [date: string]: DatePhotoData } = {};
     
+    console.log('📅 Loading trip data for trip:', currentTrip.id, currentTrip.name);
+    console.log('👤 Current user:', user?.username, user?.id);
+    
     try {
       const startDate = new Date(currentTrip.start_date);
       const endDate = new Date(currentTrip.end_date);
@@ -74,6 +78,17 @@ export default function CalendarPage() {
         try {
           // Get diary entries (photos from ALL participants!)
           const entries = await diaryApi.getEntriesForDate(currentTrip.id, dateStr);
+          
+          // Debug: Log all entries to see who's data we're getting
+          if (entries.length > 0) {
+            console.log(`📸 [${dateStr}] Diary entries:`, entries.map(e => ({
+              id: e.id,
+              user_id: e.user_id,
+              username: e.username,
+              photoCount: e.photos.length
+            })));
+          }
+          
           const photos: { url: string; author: string; isExpense: boolean }[] = [];
           
           entries.forEach(entry => {
@@ -91,6 +106,15 @@ export default function CalendarPage() {
           try {
             const expenses = await expensesApi.getByDate(currentTrip.id, dateStr);
             expenseCount = expenses.length;
+            
+            // Debug: Log expenses to see sharing
+            if (expenses.length > 0) {
+              console.log(`💰 [${dateStr}] Expenses:`, expenses.map(e => ({
+                id: e.id,
+                payer_username: e.payer_username,
+                amount: e.amount
+              })));
+            }
           } catch {
             // No expenses for this date
           }
@@ -108,18 +132,42 @@ export default function CalendarPage() {
       }
       
       setDatePhotos(photoData);
-      console.log('📅 Calendar data loaded:', Object.keys(photoData).length, 'dates with data');
+      
+      // Summary log
+      const allPhotos = Object.values(photoData).flatMap(d => d.photos);
+      const uniqueAuthors = [...new Set(allPhotos.map(p => p.author))];
+      console.log('📅 Calendar data loaded:', {
+        datesWithData: Object.keys(photoData).length,
+        totalPhotos: allPhotos.length,
+        photoAuthors: uniqueAuthors,
+        myPhotos: allPhotos.filter(p => p.author === user?.username).length,
+        sharedPhotos: allPhotos.filter(p => p.author !== user?.username).length,
+      });
     } catch (error) {
       console.error('Failed to load trip data:', error);
     } finally {
       setLoadingPhotos(false);
     }
+  }, [currentTrip, user]);
+
+  // Load participants for the trip
+  const loadParticipants = useCallback(async () => {
+    if (!currentTrip) return;
+    
+    try {
+      const parts = await tripsApi.getParticipants(currentTrip.id);
+      console.log('👥 Trip participants:', parts);
+      setParticipants(parts.map(p => ({ id: p.id, username: p.username || p.name })));
+    } catch (error) {
+      console.error('Failed to load participants:', error);
+    }
   }, [currentTrip]);
 
-  // Load photos when trip changes
+  // Load photos and participants when trip changes
   useEffect(() => {
     loadTripData();
-  }, [loadTripData]);
+    loadParticipants();
+  }, [loadTripData, loadParticipants]);
 
   // Save emoji data to localStorage
   const saveEmojiData = (data: EmojiData) => {
@@ -266,6 +314,26 @@ export default function CalendarPage() {
             <span className="trip-period">{formatTripDates()}</span>
           </div>
         </header>
+        
+        {/* Participants Info Bar - Shows who's sharing this trip */}
+        {participants.length > 0 && (
+          <div className="participants-bar">
+            <span className="participants-label">👥 Participants:</span>
+            <div className="participants-list">
+              {participants.map((p, idx) => (
+                <span 
+                  key={p.id} 
+                  className={`participant-chip ${p.username === user?.username ? 'me' : ''}`}
+                >
+                  {p.username === user?.username ? 'Me' : p.username}
+                </span>
+              ))}
+            </div>
+            {participants.length > 1 && (
+              <span className="sharing-indicator">📸 사진 공유 중</span>
+            )}
+          </div>
+        )}
 
         {/* Calendar */}
         <div className="calendar-wrapper">

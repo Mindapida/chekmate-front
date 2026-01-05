@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
 import { useAuth } from '../context/AuthContext';
-import { diaryApi, expensesApi, commentsApi } from '../api';
+import { diaryApi, expensesApi, commentsApi, tripsApi } from '../api';
 import BottomNav, { saveLastPage } from '../components/BottomNav';
 import './ImagesPage.css';
 
@@ -71,6 +71,7 @@ export default function ImagesPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'timeline'>('timeline');
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
+  const [participants, setParticipants] = useState<{ id: number; username: string }[]>([]);
   
   // Swipe handling
   const touchStartX = useRef<number>(0);
@@ -84,11 +85,27 @@ export default function ImagesPage() {
     saveLastPage('/images');
   }, []);
 
+  // Load participants for the trip
+  const loadParticipants = useCallback(async () => {
+    if (!currentTrip) return;
+    
+    try {
+      const parts = await tripsApi.getParticipants(currentTrip.id);
+      console.log('👥 [Images] Trip participants:', parts);
+      setParticipants(parts.map(p => ({ id: p.id, username: p.username || p.name })));
+    } catch (error) {
+      console.error('Failed to load participants:', error);
+    }
+  }, [currentTrip]);
+
   // Load photos from backend
   const loadPhotos = useCallback(async () => {
     if (!currentTrip) return;
     
     setLoading(true);
+    console.log('📸 [Images] Loading photos for trip:', currentTrip.id, currentTrip.name);
+    console.log('👤 [Images] Current user:', user?.username, user?.id);
+    
     try {
       const allPhotos: PhotoEntry[] = [];
       const allMemos: { [date: string]: string } = {};
@@ -104,6 +121,16 @@ export default function ImagesPage() {
         try {
           // Get diary entries for this date (includes all participants' photos!)
           const entries = await diaryApi.getEntriesForDate(currentTrip.id, dateStr);
+          
+          // Debug: Log entries to see who's data we're getting
+          if (entries.length > 0) {
+            console.log(`📸 [Images][${dateStr}] Diary entries:`, entries.map(e => ({
+              id: e.id,
+              user_id: e.user_id,
+              username: e.username,
+              photoCount: e.photos.length
+            })));
+          }
           
           // Get expenses for this date (for expense info)
           let expenses: any[] = [];
@@ -159,6 +186,15 @@ export default function ImagesPage() {
       setPhotos(allPhotos);
       setMemos(allMemos);
       
+      // Summary log
+      const uniqueAuthors = [...new Set(allPhotos.map(p => p.author))];
+      console.log('📸 [Images] Photos loaded:', {
+        totalPhotos: allPhotos.length,
+        photoAuthors: uniqueAuthors,
+        myPhotos: allPhotos.filter(p => p.author === user?.username).length,
+        sharedPhotos: allPhotos.filter(p => p.author !== user?.username).length,
+      });
+      
       // Load comments from backend (shared among all participants!)
       try {
         const sharedComments = await commentsApi.getComments(currentTrip.id);
@@ -173,11 +209,12 @@ export default function ImagesPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentTrip]);
+  }, [currentTrip, user]);
 
   useEffect(() => {
     loadPhotos();
-  }, [loadPhotos]);
+    loadParticipants();
+  }, [loadPhotos, loadParticipants]);
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -343,6 +380,26 @@ export default function ImagesPage() {
             >▦</button>
           </div>
         </header>
+
+        {/* Participants Info Bar - Shows who's sharing photos */}
+        {participants.length > 0 && (
+          <div className="participants-bar">
+            <span className="participants-label">👥 Participants:</span>
+            <div className="participants-list">
+              {participants.map((p) => (
+                <span 
+                  key={p.id} 
+                  className={`participant-chip ${p.username === user?.username ? 'me' : ''}`}
+                >
+                  {p.username === user?.username ? 'Me' : p.username}
+                </span>
+              ))}
+            </div>
+            {participants.length > 1 && (
+              <span className="sharing-indicator">📸 사진 공유 중</span>
+            )}
+          </div>
+        )}
 
         {/* Trip Info */}
         <div className="trip-info-bar">
