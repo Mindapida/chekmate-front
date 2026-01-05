@@ -323,12 +323,10 @@ interface DiaryEntryResponse {
 
 // Backend base URL for constructing photo URLs
 const getBackendUrl = () => {
-  // Use the API URL but remove /api suffix for static files
-  const apiUrl = import.meta.env.VITE_API_URL || '/api';
-  if (apiUrl.endsWith('/api')) {
-    return apiUrl.slice(0, -4);
-  }
-  return apiUrl.replace('/api', '');
+  // For static files (photos), we need the actual backend URL
+  // The backend is at thistimeapp.com
+  const backendStaticUrl = import.meta.env.VITE_BACKEND_URL || 'https://thistimeapp.com';
+  return backendStaticUrl;
 };
 
 export const diaryApi = {

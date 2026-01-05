@@ -501,8 +501,7 @@ export default function ImagesPage() {
                         )}
                       </div>
                     );
-                  }
-                  ))}
+                  })}
                 </div>
               </div>
             ))}
