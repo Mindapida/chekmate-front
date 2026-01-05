@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
+import { useAuth } from '../context/AuthContext';
+import { diaryApi, expensesApi } from '../api';
 import BottomNav, { saveLastPage } from '../components/BottomNav';
 import './CalendarPage.css';
 
@@ -16,12 +18,22 @@ interface EmojiData {
   };
 }
 
+// Photo preview data for each date
+interface DatePhotoData {
+  photos: { url: string; author: string; isExpense: boolean }[];
+  hasExpense: boolean;
+  expenseCount: number;
+}
+
 export default function CalendarPage() {
   const navigate = useNavigate();
   const { currentTrip } = useTrips();
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [emojiData, setEmojiData] = useState<EmojiData>({});
+  const [datePhotos, setDatePhotos] = useState<{ [date: string]: DatePhotoData }>({});
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
 
   // Save current page on mount
   useEffect(() => {
@@ -43,6 +55,71 @@ export default function CalendarPage() {
       setCurrentDate(new Date(tripStart.getFullYear(), tripStart.getMonth(), 1));
     }
   }, [currentTrip]);
+
+  // Load photos and expenses for all dates in the trip (shared among all participants!)
+  const loadTripData = useCallback(async () => {
+    if (!currentTrip) return;
+    
+    setLoadingPhotos(true);
+    const photoData: { [date: string]: DatePhotoData } = {};
+    
+    try {
+      const startDate = new Date(currentTrip.start_date);
+      const endDate = new Date(currentTrip.end_date);
+      
+      // Load data for each date in the trip
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        
+        try {
+          // Get diary entries (photos from ALL participants!)
+          const entries = await diaryApi.getEntriesForDate(currentTrip.id, dateStr);
+          const photos: { url: string; author: string; isExpense: boolean }[] = [];
+          
+          entries.forEach(entry => {
+            entry.photos.forEach(photo => {
+              photos.push({
+                url: diaryApi.getPhotoUrl(photo.file_path),
+                author: entry.username,
+                isExpense: !!entry.expense_id,
+              });
+            });
+          });
+          
+          // Get expenses count
+          let expenseCount = 0;
+          try {
+            const expenses = await expensesApi.getByDate(currentTrip.id, dateStr);
+            expenseCount = expenses.length;
+          } catch {
+            // No expenses for this date
+          }
+          
+          if (photos.length > 0 || expenseCount > 0) {
+            photoData[dateStr] = {
+              photos,
+              hasExpense: expenseCount > 0,
+              expenseCount,
+            };
+          }
+        } catch (error) {
+          console.error(`Failed to load data for ${dateStr}:`, error);
+        }
+      }
+      
+      setDatePhotos(photoData);
+      console.log('📅 Calendar data loaded:', Object.keys(photoData).length, 'dates with data');
+    } catch (error) {
+      console.error('Failed to load trip data:', error);
+    } finally {
+      setLoadingPhotos(false);
+    }
+  }, [currentTrip]);
+
+  // Load photos when trip changes
+  useEffect(() => {
+    loadTripData();
+  }, [loadTripData]);
 
   // Save emoji data to localStorage
   const saveEmojiData = (data: EmojiData) => {
@@ -116,6 +193,12 @@ export default function CalendarPage() {
     if (!currentTrip) return null;
     const dateKey = getDateKey(day);
     return emojiData[currentTrip.id]?.[dateKey] || null;
+  };
+
+  // Get photo data for a specific day
+  const getPhotoDataForDay = (day: number): DatePhotoData | null => {
+    const dateKey = getDateKey(day);
+    return datePhotos[dateKey] || null;
   };
 
   const handleEmojiSelect = (emoji: string) => {
@@ -219,6 +302,9 @@ export default function CalendarPage() {
               const isSunday = dayOfWeek === 0;
               const isSaturday = dayOfWeek === 6;
               const emoji = getEmojiForDay(day);
+              const photoData = getPhotoDataForDay(day);
+              const hasPhotos = photoData && photoData.photos.length > 0;
+              const hasExpenses = photoData && photoData.hasExpense;
 
               return (
                 <div 
@@ -230,11 +316,40 @@ export default function CalendarPage() {
                     ${isSelected ? 'selected' : ''}
                     ${isSunday ? 'sunday' : ''}
                     ${isSaturday ? 'saturday' : ''}
+                    ${hasPhotos ? 'has-photos' : ''}
                   `}
                   onClick={() => handleDayClick(day)}
                 >
                   <span className="day-number">{day}</span>
                   {emoji && <span className="day-emoji">{emoji}</span>}
+                  
+                  {/* Photo thumbnail preview (shared from all participants!) */}
+                  {hasPhotos && (
+                    <div className="day-photo-preview">
+                      <img 
+                        src={photoData.photos[0].url} 
+                        alt="" 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      {photoData.photos.length > 1 && (
+                        <span className="photo-count">+{photoData.photos.length - 1}</span>
+                      )}
+                      {/* Show if there are photos from other users */}
+                      {photoData.photos.some(p => p.author !== user?.username) && (
+                        <span className="shared-indicator">👥</span>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Expense indicator */}
+                  {hasExpenses && !hasPhotos && (
+                    <span className="expense-indicator">💰</span>
+                  )}
+                  {hasExpenses && hasPhotos && (
+                    <span className="expense-badge">{photoData.expenseCount}</span>
+                  )}
                 </div>
               );
             })}
@@ -247,8 +362,51 @@ export default function CalendarPage() {
           {selectedDate && (
             <div className="selected-info">
               📅 {formatSelectedDate()}
+              {loadingPhotos && <span className="loading-indicator">⏳</span>}
             </div>
           )}
+          
+          {/* Photo Preview Section for Selected Date */}
+          {selectedDate && isInTripRange(selectedDate.getDate()) && (() => {
+            const photoData = getPhotoDataForDay(selectedDate.getDate());
+            if (!photoData || photoData.photos.length === 0) return null;
+            
+            const myPhotos = photoData.photos.filter(p => p.author === user?.username);
+            const sharedPhotos = photoData.photos.filter(p => p.author !== user?.username);
+            
+            return (
+              <div className="date-photos-preview">
+                <div className="photos-header">
+                  <span>📸 Photos ({photoData.photos.length})</span>
+                  {sharedPhotos.length > 0 && (
+                    <span className="shared-photos-badge">
+                      👥 {sharedPhotos.length} shared
+                    </span>
+                  )}
+                </div>
+                <div className="photos-scroll">
+                  {photoData.photos.slice(0, 6).map((photo, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`preview-photo ${photo.author !== user?.username ? 'shared' : ''}`}
+                    >
+                      <img src={photo.url} alt="" />
+                      <span className="photo-author">{photo.author === user?.username ? 'Me' : photo.author}</span>
+                      {photo.isExpense && <span className="expense-tag">💰</span>}
+                    </div>
+                  ))}
+                  {photoData.photos.length > 6 && (
+                    <div 
+                      className="more-photos"
+                      onClick={() => navigate('/images')}
+                    >
+                      +{photoData.photos.length - 6} more
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Emoji Selector */}
           <div className="emoji-row">
