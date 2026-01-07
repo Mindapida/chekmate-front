@@ -253,8 +253,15 @@ export default function ExpensePage() {
       const createdExpenses = await ocrApi.createFromReceipt(currentTrip.id, selectedDate, file, participantIds);
       console.log('✅ OCR Created Expenses:', createdExpenses);
       
+      // Mark all OCR-created expenses as paid by current user (uploader)
+      const expensesWithPayer = createdExpenses.map(exp => ({
+        ...exp,
+        payer_id: exp.payer_id || user?.id,
+        payer_username: exp.payer_username || user?.username,
+      }));
+      
       // Add created expenses to the list
-      setExpenses(prev => [...prev, ...createdExpenses]);
+      setExpenses(prev => [...prev, ...expensesWithPayer]);
       
       // Show results in modal as confirmation
       setOcrItems(createdExpenses.map(exp => ({
@@ -301,6 +308,12 @@ export default function ExpensePage() {
     const selectedItems = ocrItems.filter(item => item.selected && item.amount > 0);
     const participantIds = participants.map(p => p.id);
     
+    // Find current user's participant ID (uploader = payer)
+    const myParticipant = participants.find(p => 
+      p.id === user?.id || (p as any).username === user?.username
+    );
+    const myId = myParticipant?.id || user?.id || null;
+    
     for (const item of selectedItems) {
       const expenseData = {
         time: new Date().toTimeString().slice(0, 5),
@@ -308,7 +321,7 @@ export default function ExpensePage() {
         currency: item.currency,
         category: 'Food',
         place: item.description || null,
-        paid_by: null,
+        paid_by: myId, // Uploader is the payer
         participant_ids: participantIds,
       };
 
@@ -335,7 +348,9 @@ export default function ExpensePage() {
           currency: expenseData.currency,
           category: expenseData.category,
           place: expenseData.place || '',
-          paid_by: 0,
+          paid_by: myId || 0,
+          payer_id: myId || undefined,
+          payer_username: user?.username,
           created_at: new Date().toISOString() 
         };
         setExpenses(prev => [...prev, localExpense]);
