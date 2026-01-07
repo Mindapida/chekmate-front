@@ -29,10 +29,20 @@ interface PhotoData {
   isExpense: boolean;
 }
 
+interface ExpenseData {
+  id: number;
+  description: string;
+  amount: number;
+  currency: string;
+  payer_username: string;
+}
+
 interface DatePhotoData {
   photos: PhotoData[];
   hasExpense: boolean;
   expenseCount: number;
+  totalAmount: number;
+  expenses: ExpenseData[];
 }
 
 export default function CalendarPage() {
@@ -113,11 +123,24 @@ export default function CalendarPage() {
             });
           });
           
-          // Get expenses count
+          // Get expenses with amounts
           let expenseCount = 0;
+          let totalAmount = 0;
+          const expenseList: ExpenseData[] = [];
           try {
             const expenses = await expensesApi.getByDate(currentTrip.id, dateStr);
             expenseCount = expenses.length;
+            
+            expenses.forEach(e => {
+              totalAmount += e.amount;
+              expenseList.push({
+                id: e.id,
+                description: e.description,
+                amount: e.amount,
+                currency: e.currency || 'KRW',
+                payer_username: e.payer_username,
+              });
+            });
             
             // Debug: Log expenses to see sharing
             if (expenses.length > 0) {
@@ -125,7 +148,7 @@ export default function CalendarPage() {
                 id: e.id,
                 payer_username: e.payer_username,
                 amount: e.amount
-              })));
+              })), `Total: ${totalAmount}`);
             }
           } catch {
             // No expenses for this date
@@ -136,6 +159,8 @@ export default function CalendarPage() {
               photos,
               hasExpense: expenseCount > 0,
               expenseCount,
+              totalAmount,
+              expenses: expenseList,
             };
           }
         } catch (error) {
@@ -255,9 +280,16 @@ export default function CalendarPage() {
     return emojiData[currentTrip.id]?.[dateKey] || null;
   };
 
-  // Get photo data for a specific day
+  // Get photo data for a specific day (in current month view)
   const getPhotoDataForDay = (day: number): DatePhotoData | null => {
     const dateKey = getDateKey(day);
+    return datePhotos[dateKey] || null;
+  };
+
+  // Get photo data for selectedDate directly (not from current month view)
+  const getSelectedDatePhotoData = (): DatePhotoData | null => {
+    if (!selectedDate) return null;
+    const dateKey = formatLocalDate(selectedDate);
     return datePhotos[dateKey] || null;
   };
 
@@ -299,7 +331,24 @@ export default function CalendarPage() {
 
   const formatSelectedDate = () => {
     if (!selectedDate) return '';
-    return `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}`;
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth() + 1;
+    const day = selectedDate.getDate();
+    return `${year}년 ${month}월 ${day}일`;
+  };
+
+  // Format currency
+  const formatCurrency = (amount: number, currency: string = 'KRW') => {
+    if (currency === 'KRW') {
+      return `₩${amount.toLocaleString()}`;
+    } else if (currency === 'USD') {
+      return `$${amount.toLocaleString()}`;
+    } else if (currency === 'EUR') {
+      return `€${amount.toLocaleString()}`;
+    } else if (currency === 'JPY') {
+      return `¥${amount.toLocaleString()}`;
+    }
+    return `${amount.toLocaleString()} ${currency}`;
   };
 
   const formatTripDates = () => {
@@ -437,17 +486,54 @@ export default function CalendarPage() {
 
         {/* Emoji & Actions Section */}
         <div className="actions-section">
-          {/* Selected Date */}
-          {selectedDate && (
-            <div className="selected-info">
-              📅 {formatSelectedDate()}
-              {loadingPhotos && <span className="loading-indicator">⏳</span>}
-            </div>
-          )}
+          {/* Selected Date Info with Expense Summary */}
+          {selectedDate && (() => {
+            const photoData = getSelectedDatePhotoData();
+            const hasExpenses = photoData && photoData.expenses.length > 0;
+            
+            return (
+              <div className="selected-date-info">
+                <div className="selected-date-header">
+                  <span className="selected-date-text">📅 {formatSelectedDate()}</span>
+                  {loadingPhotos && <span className="loading-indicator">⏳</span>}
+                </div>
+                
+                {/* Expense Summary for Selected Date */}
+                {hasExpenses && (
+                  <div className="expense-summary">
+                    <div className="expense-summary-header">
+                      <span className="expense-icon">💰</span>
+                      <span className="expense-total">
+                        총 지출: <strong>{formatCurrency(photoData.totalAmount)}</strong>
+                      </span>
+                      <span className="expense-count">({photoData.expenses.length}건)</span>
+                    </div>
+                    <div className="expense-list">
+                      {photoData.expenses.slice(0, 3).map((expense) => (
+                        <div key={expense.id} className="expense-item">
+                          <span className="expense-desc">{expense.description}</span>
+                          <span className="expense-amount">{formatCurrency(expense.amount, expense.currency)}</span>
+                          <span className="expense-payer">by {expense.payer_username === user?.username ? 'Me' : expense.payer_username}</span>
+                        </div>
+                      ))}
+                      {photoData.expenses.length > 3 && (
+                        <div 
+                          className="more-expenses"
+                          onClick={() => navigate(`/expense?date=${formatLocalDate(selectedDate)}`)}
+                        >
+                          +{photoData.expenses.length - 3}건 더 보기
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           
           {/* Photo Preview Section for Selected Date */}
           {selectedDate && isInTripRange(selectedDate.getDate()) && (() => {
-            const photoData = getPhotoDataForDay(selectedDate.getDate());
+            const photoData = getSelectedDatePhotoData();
             if (!photoData || photoData.photos.length === 0) return null;
             
             const sharedPhotos = photoData.photos.filter(p => p.author !== user?.username);
