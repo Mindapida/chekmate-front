@@ -135,10 +135,10 @@ export default function CalendarPage() {
               totalAmount += e.amount;
               expenseList.push({
                 id: e.id,
-                description: e.description,
+                description: e.description || '',
                 amount: e.amount,
                 currency: e.currency || 'KRW',
-                payer_username: e.payer_username,
+                payer_username: e.payer_username || '',
               });
             });
             
