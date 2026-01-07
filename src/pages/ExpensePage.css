@@ -162,6 +162,58 @@
   color: #111827;
 }
 
+/* Expense Summary Bar */
+.expense-summary-bar {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  padding: 14px 16px;
+  border-bottom: 2px solid #F59E0B;
+}
+
+.summary-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.summary-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400E;
+}
+
+.summary-amount {
+  font-size: 20px;
+  font-weight: 800;
+  color: #B45309;
+}
+
+.summary-detail {
+  font-size: 12px;
+  color: #92400E;
+  margin-top: 4px;
+}
+
+.summary-shared {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #D97706;
+}
+
+.shared-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #78350F;
+}
+
+.shared-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: #78350F;
+}
+
 /* Expenses Container */
 .expenses-container {
   flex: 1;

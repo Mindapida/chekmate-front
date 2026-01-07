@@ -500,6 +500,48 @@ export default function ExpensePage() {
         <span className="date-text">{formatDate(selectedDate)}</span>
       </div>
 
+      {/* Daily Expense Summary - My total spending */}
+      {expenses.length > 0 && (() => {
+        // Calculate total I paid (where I'm the payer)
+        const myExpenses = expenses.filter(e => 
+          e.payer_id === user?.id || e.payer_username === user?.username
+        );
+        const totalPaidKRW = myExpenses.reduce((sum, e) => 
+          sum + (e.amount_krw || convertToKRW(e.amount, e.currency)), 0
+        );
+        const totalPaidOriginal = myExpenses.reduce((sum, e) => sum + e.amount, 0);
+        
+        // Calculate my share from split expenses (where I'm a participant but not payer)
+        const sharedExpenses = expenses.filter(e => 
+          e.payer_id !== user?.id && e.payer_username !== user?.username
+        );
+        const myShareKRW = sharedExpenses.reduce((sum, e) => {
+          const numParticipants = e.participants?.length || 1;
+          const baseAmount = Math.floor((e.amount_krw || convertToKRW(e.amount, e.currency)) / numParticipants);
+          return sum + baseAmount;
+        }, 0);
+
+        return (
+          <div className="expense-summary-bar">
+            <div className="summary-main">
+              <span className="summary-label">💸 내가 낸 금액</span>
+              <span className="summary-amount">₩{totalPaidKRW.toLocaleString()}</span>
+            </div>
+            {myExpenses.length > 0 && (
+              <div className="summary-detail">
+                {myExpenses.length}건 결제 ({totalPaidOriginal.toLocaleString()} {myExpenses[0]?.currency || 'KRW'})
+              </div>
+            )}
+            {myShareKRW > 0 && (
+              <div className="summary-shared">
+                <span className="shared-label">👥 정산 예정</span>
+                <span className="shared-amount">₩{myShareKRW.toLocaleString()}</span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Expenses List */}
       <div className="expenses-container">
         {loading ? (
