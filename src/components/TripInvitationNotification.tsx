@@ -5,6 +5,9 @@ import { invitationsApi } from '../api';
 import type { Trip } from '../types/api';
 import './TripInvitationNotification.css';
 
+// Key for storing accepted trip IDs per user
+const getAcceptedTripsKey = (userId: number) => `accepted_trips_${userId}`;
+
 interface TripInvitationNotificationProps {
   onTripsUpdated?: () => void;
 }
@@ -16,23 +19,49 @@ export default function TripInvitationNotification({ onTripsUpdated }: TripInvit
   const [isLoading, setIsLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Load new invitations (only trips where user is NOT the creator)
+  // Get accepted trip IDs for current user
+  const getAcceptedTripIds = useCallback((): number[] => {
+    if (!user) return [];
+    const key = getAcceptedTripsKey(user.id);
+    return JSON.parse(localStorage.getItem(key) || '[]');
+  }, [user]);
+
+  // Mark trip as accepted for current user
+  const markTripAsAccepted = useCallback((tripId: number) => {
+    if (!user) return;
+    const key = getAcceptedTripsKey(user.id);
+    const acceptedIds = JSON.parse(localStorage.getItem(key) || '[]') as number[];
+    if (!acceptedIds.includes(tripId)) {
+      acceptedIds.push(tripId);
+      localStorage.setItem(key, JSON.stringify(acceptedIds));
+      console.log('✅ Trip marked as accepted:', tripId);
+    }
+  }, [user]);
+
+  // Load new invitations (only trips where user is NOT the creator AND hasn't accepted yet)
   const loadInvitations = useCallback(async () => {
     if (!user) return;
     
     setIsLoading(true);
     try {
       const newTrips = await invitationsApi.getNewInvitations();
-      // Filter out trips created by the current user - only show invitations
-      const invitedTrips = newTrips.filter(trip => trip.created_by !== user.id);
-      console.log('🔔 New invitations for', user.username, ':', invitedTrips.length);
+      const acceptedTripIds = getAcceptedTripIds();
+      
+      // Filter out:
+      // 1. Trips created by the current user
+      // 2. Trips already accepted by the current user
+      const invitedTrips = newTrips.filter(trip => 
+        trip.created_by !== user.id && !acceptedTripIds.includes(trip.id)
+      );
+      console.log('🔔 New invitations for', user.username, ':', invitedTrips.length, 
+        '(filtered from', newTrips.length, 'new trips, accepted:', acceptedTripIds.length, ')');
       setInvitations(invitedTrips);
     } catch (error) {
       console.error('Failed to load invitations:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, getAcceptedTripIds]);
 
   useEffect(() => {
     loadInvitations();
@@ -42,23 +71,28 @@ export default function TripInvitationNotification({ onTripsUpdated }: TripInvit
     return () => clearInterval(interval);
   }, [loadInvitations]);
 
-  // Accept invitation (mark as seen and navigate to trip)
+  // Accept invitation (mark as accepted and navigate to trip)
   const handleAccept = async (trip: Trip) => {
+    // Mark as accepted (permanent - won't show again)
+    markTripAsAccepted(trip.id);
     invitationsApi.markAsSeen(trip.id);
     setInvitations(prev => prev.filter(t => t.id !== trip.id));
     onTripsUpdated?.();
     navigate(`/trip/${trip.id}`);
   };
 
-  // Decline/dismiss invitation
+  // Decline/dismiss invitation (just hide, can reappear if localStorage clears)
   const handleDecline = async (trip: Trip) => {
-    // Just mark as seen (user chose not to participate actively)
+    // Mark as accepted so it won't show again
+    markTripAsAccepted(trip.id);
     invitationsApi.markAsSeen(trip.id);
     setInvitations(prev => prev.filter(t => t.id !== trip.id));
   };
 
   // Dismiss all
   const handleDismissAll = () => {
+    // Mark all as accepted
+    invitations.forEach(trip => markTripAsAccepted(trip.id));
     const tripIds = invitations.map(t => t.id);
     invitationsApi.markAllAsSeen(tripIds);
     setInvitations([]);
