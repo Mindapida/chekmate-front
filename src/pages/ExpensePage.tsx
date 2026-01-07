@@ -157,8 +157,10 @@ export default function ExpensePage() {
   const handleBack = () => navigate('/calendar');
 
   const formatDate = (date: string) => {
-    const d = new Date(date);
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
+    // Parse date string manually to avoid timezone issues
+    // date format: "YYYY-MM-DD"
+    const [year, month, day] = date.split('-').map(Number);
+    return `${month.toString().padStart(2, '0')}.${day.toString().padStart(2, '0')}.${year}`;
   };
 
   const handleAddExpense = async () => {
