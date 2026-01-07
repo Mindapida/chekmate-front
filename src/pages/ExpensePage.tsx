@@ -591,7 +591,7 @@ export default function ExpensePage() {
                       className={`payer-info ${isEditing ? 'active' : ''}`}
                       onClick={() => setEditingSplitId(isEditing ? null : expense.id)}
                     >
-                      <span className="payer-name">{isMyExpense ? 'Me' : payerName}</span>
+                      <span className="payer-name">{isMyExpense ? `${user?.username} (나)` : payerName}</span>
                       <span className="split-count">
                         {participantCount > 0 ? `÷${participantCount}` : '👥'}
                       </span>
@@ -609,28 +609,22 @@ export default function ExpensePage() {
                         >✕</button>
                       </div>
                       <div className="split-options">
-                        {/* Me option */}
-                        <label className="split-option">
-                          <input 
-                            type="checkbox"
-                            checked={splits.includes(0)}
-                            onChange={() => toggleExpenseSplit(expense.id, 0)}
-                          />
-                          <span className="option-check">{splits.includes(0) ? '✓' : ''}</span>
-                          <span className="option-name">Me</span>
-                        </label>
-                        {/* Participants */}
-                        {participants.map(p => (
-                          <label key={p.id} className="split-option">
-                            <input 
-                              type="checkbox"
-                              checked={splits.includes(p.id)}
-                              onChange={() => toggleExpenseSplit(expense.id, p.id)}
-                            />
-                            <span className="option-check">{splits.includes(p.id) ? '✓' : ''}</span>
-                            <span className="option-name">{p.name || (p as any).username || `User ${p.id}`}</span>
-                          </label>
-                        ))}
+                        {/* All participants (including current user) */}
+                        {participants.map(p => {
+                          const isCurrentUser = p.id === user?.id || (p as any).username === user?.username;
+                          const displayName = isCurrentUser ? `${(p as any).username || p.name} (나)` : (p.name || (p as any).username || `User ${p.id}`);
+                          return (
+                            <label key={p.id} className={`split-option ${isCurrentUser ? 'current-user' : ''}`}>
+                              <input 
+                                type="checkbox"
+                                checked={splits.includes(p.id)}
+                                onChange={() => toggleExpenseSplit(expense.id, p.id)}
+                              />
+                              <span className="option-check">{splits.includes(p.id) ? '✓' : ''}</span>
+                              <span className="option-name">{displayName}</span>
+                            </label>
+                          );
+                        })}
                       </div>
                       {splits.length > 0 && (
                         <div className="split-summary-inline">
@@ -733,21 +727,19 @@ export default function ExpensePage() {
               <div className="form-section">
                 <label>Paid by</label>
                 <div className="payer-row">
-                  <button 
-                    className={`payer-chip ${newExpense.paid_by === 0 ? 'active' : ''}`}
-                    onClick={() => setNewExpense({...newExpense, paid_by: 0})}
-                  >
-                    Me
-                  </button>
-                  {participants.map(p => (
-                    <button 
-                      key={p.id}
-                      className={`payer-chip ${newExpense.paid_by === p.id ? 'active' : ''}`}
-                      onClick={() => setNewExpense({...newExpense, paid_by: p.id})}
-                    >
-                      {p.name || (p as any).username || `User ${p.id}`}
-                    </button>
-                  ))}
+                  {participants.map(p => {
+                    const isCurrentUser = p.id === user?.id || (p as any).username === user?.username;
+                    const displayName = isCurrentUser ? `${(p as any).username || p.name} (나)` : (p.name || (p as any).username || `User ${p.id}`);
+                    return (
+                      <button 
+                        key={p.id}
+                        className={`payer-chip ${newExpense.paid_by === p.id ? 'active' : ''} ${isCurrentUser ? 'current-user' : ''}`}
+                        onClick={() => setNewExpense({...newExpense, paid_by: p.id})}
+                      >
+                        {displayName}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -755,28 +747,22 @@ export default function ExpensePage() {
               <div className="form-section">
                 <label>Split with</label>
                 <div className="split-row">
-                  {/* Me option */}
-                  <label className="split-checkbox">
-                    <input 
-                      type="checkbox"
-                      checked={newExpense.split_with.includes(0)}
-                      onChange={() => toggleSplitWith(0)}
-                    />
-                    <span className="checkmark"></span>
-                    <span className="name">Me</span>
-                  </label>
-                  {/* Other participants */}
-                  {participants.map(p => (
-                    <label key={p.id} className="split-checkbox">
-                      <input 
-                        type="checkbox"
-                        checked={newExpense.split_with.includes(p.id)}
-                        onChange={() => toggleSplitWith(p.id)}
-                      />
-                      <span className="checkmark"></span>
-                      <span className="name">{p.name || (p as any).username || `User ${p.id}`}</span>
-                    </label>
-                  ))}
+                  {/* All participants (including current user) */}
+                  {participants.map(p => {
+                    const isCurrentUser = p.id === user?.id || (p as any).username === user?.username;
+                    const displayName = isCurrentUser ? `${(p as any).username || p.name} (나)` : (p.name || (p as any).username || `User ${p.id}`);
+                    return (
+                      <label key={p.id} className={`split-checkbox ${isCurrentUser ? 'current-user' : ''}`}>
+                        <input 
+                          type="checkbox"
+                          checked={newExpense.split_with.includes(p.id)}
+                          onChange={() => toggleSplitWith(p.id)}
+                        />
+                        <span className="checkmark"></span>
+                        <span className="name">{displayName}</span>
+                      </label>
+                    );
+                  })}
                 </div>
                 {newExpense.split_with.length > 0 && newExpense.amount && (
                   <div className="split-summary">

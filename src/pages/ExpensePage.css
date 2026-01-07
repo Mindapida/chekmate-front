@@ -652,6 +652,17 @@
   color: #1E40AF;
 }
 
+.payer-chip.current-user {
+  border-color: #10B981;
+  background: #D1FAE5;
+}
+
+.payer-chip.current-user.active {
+  border-color: #059669;
+  background: #A7F3D0;
+  color: #065F46;
+}
+
 /* Split Row */
 .split-row {
   display: flex;
@@ -704,6 +715,16 @@
   font-size: 16px;
   font-weight: 500;
   color: #374151;
+}
+
+.split-checkbox.current-user .name {
+  color: #059669;
+  font-weight: 600;
+}
+
+.split-option.current-user .option-name {
+  color: #059669;
+  font-weight: 600;
 }
 
 .split-summary {
