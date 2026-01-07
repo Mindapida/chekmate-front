@@ -400,7 +400,7 @@ export default function ImagesPage() {
               ))}
             </div>
             {participants.length > 1 && (
-              <span className="sharing-indicator">📸 사진 공유 중</span>
+              <span className="sharing-indicator">📸 Sharing Photos</span>
             )}
           </div>
         )}
@@ -577,8 +577,8 @@ export default function ImagesPage() {
               <div className="comments-list">
                 {(comments[String(selectedPhoto.photoId)] || []).length === 0 ? (
                   <div className="no-comments">
-                    <p>💭 첫 댓글을 남겨보세요!</p>
-                    <small>모든 참가자가 볼 수 있어요</small>
+                    <p>💭 Leave the first comment!</p>
+                    <small>All participants can see it</small>
                   </div>
                 ) : (
                   (comments[String(selectedPhoto.photoId)] || []).map((comment) => (
@@ -600,7 +600,7 @@ export default function ImagesPage() {
                 <input
                   type="text"
                   className="comment-input"
-                  placeholder="댓글을 입력하세요... (모든 참가자에게 공유)"
+                  placeholder="Write a comment... (shared with all participants)"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}

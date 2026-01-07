@@ -524,17 +524,17 @@ export default function ExpensePage() {
         return (
           <div className="expense-summary-bar">
             <div className="summary-main">
-              <span className="summary-label">💸 내가 낸 금액</span>
+              <span className="summary-label">💸 I Paid</span>
               <span className="summary-amount">₩{totalPaidKRW.toLocaleString()}</span>
             </div>
             {myExpenses.length > 0 && (
               <div className="summary-detail">
-                {myExpenses.length}건 결제 ({totalPaidOriginal.toLocaleString()} {myExpenses[0]?.currency || 'KRW'})
+                {myExpenses.length} payment(s) ({totalPaidOriginal.toLocaleString()} {myExpenses[0]?.currency || 'KRW'})
               </div>
             )}
             {myShareKRW > 0 && (
               <div className="summary-shared">
-                <span className="shared-label">👥 정산 예정</span>
+                <span className="shared-label">👥 To Settle</span>
                 <span className="shared-amount">₩{myShareKRW.toLocaleString()}</span>
               </div>
             )}
@@ -591,7 +591,7 @@ export default function ExpensePage() {
                       className={`payer-info ${isEditing ? 'active' : ''}`}
                       onClick={() => setEditingSplitId(isEditing ? null : expense.id)}
                     >
-                      <span className="payer-name">{isMyExpense ? `${user?.username} (나)` : payerName}</span>
+                      <span className="payer-name">{isMyExpense ? `${user?.username} (Me)` : payerName}</span>
                       <span className="split-count">
                         {participantCount > 0 ? `÷${participantCount}` : '👥'}
                       </span>
@@ -612,7 +612,7 @@ export default function ExpensePage() {
                         {/* All participants (including current user) */}
                         {participants.map(p => {
                           const isCurrentUser = p.id === user?.id || (p as any).username === user?.username;
-                          const displayName = isCurrentUser ? `${(p as any).username || p.name} (나)` : (p.name || (p as any).username || `User ${p.id}`);
+                          const displayName = isCurrentUser ? `${(p as any).username || p.name} (Me)` : (p.name || (p as any).username || `User ${p.id}`);
                           return (
                             <label key={p.id} className={`split-option ${isCurrentUser ? 'current-user' : ''}`}>
                               <input 
@@ -729,7 +729,7 @@ export default function ExpensePage() {
                 <div className="payer-row">
                   {participants.map(p => {
                     const isCurrentUser = p.id === user?.id || (p as any).username === user?.username;
-                    const displayName = isCurrentUser ? `${(p as any).username || p.name} (나)` : (p.name || (p as any).username || `User ${p.id}`);
+                    const displayName = isCurrentUser ? `${(p as any).username || p.name} (Me)` : (p.name || (p as any).username || `User ${p.id}`);
                     return (
                       <button 
                         key={p.id}
@@ -750,7 +750,7 @@ export default function ExpensePage() {
                   {/* All participants (including current user) */}
                   {participants.map(p => {
                     const isCurrentUser = p.id === user?.id || (p as any).username === user?.username;
-                    const displayName = isCurrentUser ? `${(p as any).username || p.name} (나)` : (p.name || (p as any).username || `User ${p.id}`);
+                    const displayName = isCurrentUser ? `${(p as any).username || p.name} (Me)` : (p.name || (p as any).username || `User ${p.id}`);
                     return (
                       <label key={p.id} className={`split-checkbox ${isCurrentUser ? 'current-user' : ''}`}>
                         <input 

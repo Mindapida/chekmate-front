@@ -344,7 +344,7 @@ export default function CalendarPage() {
     const year = selectedDate.getFullYear();
     const month = selectedDate.getMonth() + 1;
     const day = selectedDate.getDate();
-    return `${year}년 ${month}월 ${day}일`;
+    return `${month}/${day}/${year}`;
   };
 
   // Format currency
@@ -401,7 +401,7 @@ export default function CalendarPage() {
               ))}
             </div>
             {participants.length > 1 && (
-              <span className="sharing-indicator">📸 사진 공유 중</span>
+              <span className="sharing-indicator">📸 Sharing Photos</span>
             )}
           </div>
         )}
@@ -521,37 +521,37 @@ export default function CalendarPage() {
                     <div className="expense-summary">
                       <div className="expense-summary-header">
                         <span className="expense-icon">💰</span>
-                        <span className="expense-label">총 지출:</span>
+                        <span className="expense-label">Total:</span>
                         <span className="expense-total-amount">{formatCurrency(totalSpending)}</span>
-                        <span className="expense-count">({photoData.expenses.length}건)</span>
+                        <span className="expense-count">({photoData.expenses.length} items)</span>
                       </div>
                       
                       <div className="expense-breakdown">
                         <div className="breakdown-row">
-                          <span className="breakdown-label">💳 내가 결제한 금액:</span>
+                          <span className="breakdown-label">💳 I Paid:</span>
                           <span className="breakdown-amount paid">{formatCurrency(myPayments)}</span>
                         </div>
                         <div className="breakdown-row">
-                          <span className="breakdown-label">📊 정산 금액:</span>
+                          <span className="breakdown-label">📊 Settlement:</span>
                           <span className={`breakdown-amount ${settlementAmount >= 0 ? 'receive' : 'pay'}`}>
                             {settlementAmount >= 0 ? '+' : ''}{formatCurrency(Math.round(settlementAmount))}
                           </span>
                         </div>
                         {settlementAmount > 0 && (
-                          <div className="settlement-hint receive">받을 금액이 있어요!</div>
+                          <div className="settlement-hint receive">You will receive money!</div>
                         )}
                         {settlementAmount < 0 && (
-                          <div className="settlement-hint pay">보내야 할 금액이 있어요!</div>
+                          <div className="settlement-hint pay">You need to pay!</div>
                         )}
                       </div>
                       
                       <div className="expense-list">
                         {photoData.expenses.slice(0, 3).map((expense) => (
                           <div key={expense.id} className="expense-item">
-                            <span className="expense-desc">{expense.description || '지출'}</span>
+                            <span className="expense-desc">{expense.description || 'Expense'}</span>
                             <span className="expense-amount">{formatCurrency(expense.amount, expense.currency)}</span>
                             <span className="expense-payer">
-                              {expense.payer_username === user?.username ? '(나)' : expense.payer_username}
+                              {expense.payer_username === user?.username ? '(Me)' : expense.payer_username}
                             </span>
                           </div>
                         ))}
@@ -560,7 +560,7 @@ export default function CalendarPage() {
                             className="more-expenses"
                             onClick={() => navigate(`/expense?date=${formatLocalDate(selectedDate)}`)}
                           >
-                            +{photoData.expenses.length - 3}건 더 보기
+                            +{photoData.expenses.length - 3} more
                           </div>
                         )}
                       </div>
