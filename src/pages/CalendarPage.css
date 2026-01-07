@@ -551,12 +551,35 @@
   color: #1E40AF;
 }
 
+.breakdown-amount.share {
+  color: #6B7280;
+}
+
 .breakdown-amount.receive {
   color: #059669;
 }
 
 .breakdown-amount.pay {
   color: #DC2626;
+}
+
+.breakdown-divider {
+  height: 1px;
+  background: #D97706;
+  margin: 6px 0;
+}
+
+.settlement-row {
+  padding-top: 4px;
+}
+
+.settlement-row .breakdown-label {
+  font-weight: 600;
+}
+
+.settlement-row .breakdown-amount {
+  font-size: 16px;
+  font-weight: 800;
 }
 
 .settlement-hint {
@@ -576,6 +599,11 @@
 .settlement-hint.pay {
   background: #FEE2E2;
   color: #DC2626;
+}
+
+.settlement-hint.even {
+  background: #E5E7EB;
+  color: #374151;
 }
 
 .expense-list {

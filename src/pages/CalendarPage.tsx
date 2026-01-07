@@ -512,36 +512,54 @@ export default function CalendarPage() {
                 {hasExpenses && (() => {
                   // Calculate totals
                   const totalSpending = photoData.expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+                  const numPeople = Math.max(participants.length, 1);
+                  
+                  // My payments (receipts I uploaded = what I actually paid)
                   const myPayments = photoData.expenses
                     .filter(e => e.payer_username === user?.username)
                     .reduce((sum, e) => sum + (e.amount || 0), 0);
-                  const settlementAmount = myPayments - (totalSpending / Math.max(participants.length, 1));
+                  
+                  // My fair share (what I should pay based on equal split)
+                  const myShare = Math.round(totalSpending / numPeople);
+                  
+                  // Settlement: positive = I receive, negative = I pay
+                  const settlementAmount = myPayments - myShare;
                   
                   return (
                     <div className="expense-summary">
                       <div className="expense-summary-header">
                         <span className="expense-icon">💰</span>
-                        <span className="expense-label">Total:</span>
+                        <span className="expense-label">Total Expenses:</span>
                         <span className="expense-total-amount">{formatCurrency(totalSpending)}</span>
                         <span className="expense-count">({photoData.expenses.length} items)</span>
                       </div>
                       
                       <div className="expense-breakdown">
                         <div className="breakdown-row">
-                          <span className="breakdown-label">💳 I Paid:</span>
+                          <span className="breakdown-label">💳 I Paid (from receipts):</span>
                           <span className="breakdown-amount paid">{formatCurrency(myPayments)}</span>
                         </div>
                         <div className="breakdown-row">
-                          <span className="breakdown-label">📊 Settlement:</span>
+                          <span className="breakdown-label">📊 My Fair Share:</span>
+                          <span className="breakdown-amount share">{formatCurrency(myShare)}</span>
+                        </div>
+                        <div className="breakdown-divider"></div>
+                        <div className="breakdown-row settlement-row">
+                          <span className="breakdown-label">
+                            {settlementAmount >= 0 ? '💵 To Receive:' : '💸 To Pay:'}
+                          </span>
                           <span className={`breakdown-amount ${settlementAmount >= 0 ? 'receive' : 'pay'}`}>
-                            {settlementAmount >= 0 ? '+' : ''}{formatCurrency(Math.round(settlementAmount))}
+                            {formatCurrency(Math.abs(Math.round(settlementAmount)))}
                           </span>
                         </div>
                         {settlementAmount > 0 && (
-                          <div className="settlement-hint receive">You will receive money!</div>
+                          <div className="settlement-hint receive">Others owe you money!</div>
                         )}
                         {settlementAmount < 0 && (
-                          <div className="settlement-hint pay">You need to pay!</div>
+                          <div className="settlement-hint pay">You owe others money!</div>
+                        )}
+                        {settlementAmount === 0 && (
+                          <div className="settlement-hint even">All settled!</div>
                         )}
                       </div>
                       
