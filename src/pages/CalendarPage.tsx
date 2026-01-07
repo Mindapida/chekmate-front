@@ -140,11 +140,13 @@ export default function CalendarPage() {
             expenseCount = expenses.length;
             
             expenses.forEach(e => {
-              totalAmount += e.amount;
+              // Ensure amount is a number
+              const amount = typeof e.amount === 'string' ? parseFloat(e.amount) : e.amount;
+              totalAmount += amount || 0;
               expenseList.push({
                 id: e.id,
                 description: e.description || '',
-                amount: e.amount,
+                amount: amount || 0,
                 currency: e.currency || 'KRW',
                 payer_username: e.payer_username || '',
               });
@@ -507,34 +509,64 @@ export default function CalendarPage() {
                 </div>
                 
                 {/* Expense Summary for Selected Date */}
-                {hasExpenses && (
-                  <div className="expense-summary">
-                    <div className="expense-summary-header">
-                      <span className="expense-icon">💰</span>
-                      <span className="expense-total">
-                        총 지출: <strong>{formatCurrency(photoData.totalAmount)}</strong>
-                      </span>
-                      <span className="expense-count">({photoData.expenses.length}건)</span>
-                    </div>
-                    <div className="expense-list">
-                      {photoData.expenses.slice(0, 3).map((expense) => (
-                        <div key={expense.id} className="expense-item">
-                          <span className="expense-desc">{expense.description}</span>
-                          <span className="expense-amount">{formatCurrency(expense.amount, expense.currency)}</span>
-                          <span className="expense-payer">by {expense.payer_username === user?.username ? 'Me' : expense.payer_username}</span>
+                {hasExpenses && (() => {
+                  // Calculate totals
+                  const totalSpending = photoData.expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+                  const myPayments = photoData.expenses
+                    .filter(e => e.payer_username === user?.username)
+                    .reduce((sum, e) => sum + (e.amount || 0), 0);
+                  const settlementAmount = myPayments - (totalSpending / Math.max(participants.length, 1));
+                  
+                  return (
+                    <div className="expense-summary">
+                      <div className="expense-summary-header">
+                        <span className="expense-icon">💰</span>
+                        <span className="expense-label">총 지출:</span>
+                        <span className="expense-total-amount">{formatCurrency(totalSpending)}</span>
+                        <span className="expense-count">({photoData.expenses.length}건)</span>
+                      </div>
+                      
+                      <div className="expense-breakdown">
+                        <div className="breakdown-row">
+                          <span className="breakdown-label">💳 내가 결제한 금액:</span>
+                          <span className="breakdown-amount paid">{formatCurrency(myPayments)}</span>
                         </div>
-                      ))}
-                      {photoData.expenses.length > 3 && (
-                        <div 
-                          className="more-expenses"
-                          onClick={() => navigate(`/expense?date=${formatLocalDate(selectedDate)}`)}
-                        >
-                          +{photoData.expenses.length - 3}건 더 보기
+                        <div className="breakdown-row">
+                          <span className="breakdown-label">📊 정산 금액:</span>
+                          <span className={`breakdown-amount ${settlementAmount >= 0 ? 'receive' : 'pay'}`}>
+                            {settlementAmount >= 0 ? '+' : ''}{formatCurrency(Math.round(settlementAmount))}
+                          </span>
                         </div>
-                      )}
+                        {settlementAmount > 0 && (
+                          <div className="settlement-hint receive">받을 금액이 있어요!</div>
+                        )}
+                        {settlementAmount < 0 && (
+                          <div className="settlement-hint pay">보내야 할 금액이 있어요!</div>
+                        )}
+                      </div>
+                      
+                      <div className="expense-list">
+                        {photoData.expenses.slice(0, 3).map((expense) => (
+                          <div key={expense.id} className="expense-item">
+                            <span className="expense-desc">{expense.description || '지출'}</span>
+                            <span className="expense-amount">{formatCurrency(expense.amount, expense.currency)}</span>
+                            <span className="expense-payer">
+                              {expense.payer_username === user?.username ? '(나)' : expense.payer_username}
+                            </span>
+                          </div>
+                        ))}
+                        {photoData.expenses.length > 3 && (
+                          <div 
+                            className="more-expenses"
+                            onClick={() => navigate(`/expense?date=${formatLocalDate(selectedDate)}`)}
+                          >
+                            +{photoData.expenses.length - 3}건 더 보기
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })()}

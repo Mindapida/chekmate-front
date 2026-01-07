@@ -504,13 +504,15 @@
   font-size: 16px;
 }
 
-.expense-total {
-  font-size: 14px;
+.expense-label {
+  font-size: 13px;
+  font-weight: 600;
   color: #92400E;
 }
 
-.expense-total strong {
-  font-size: 16px;
+.expense-total-amount {
+  font-size: 18px;
+  font-weight: 800;
   color: #B45309;
 }
 
@@ -518,6 +520,62 @@
   font-size: 12px;
   color: #B45309;
   margin-left: auto;
+}
+
+/* Expense Breakdown */
+.expense-breakdown {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.breakdown-label {
+  font-size: 12px;
+  color: #78350F;
+}
+
+.breakdown-amount {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.breakdown-amount.paid {
+  color: #1E40AF;
+}
+
+.breakdown-amount.receive {
+  color: #059669;
+}
+
+.breakdown-amount.pay {
+  color: #DC2626;
+}
+
+.settlement-hint {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.settlement-hint.receive {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+.settlement-hint.pay {
+  background: #FEE2E2;
+  color: #DC2626;
 }
 
 .expense-list {
