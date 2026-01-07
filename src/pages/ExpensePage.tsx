@@ -376,6 +376,19 @@ export default function ExpensePage() {
     return cat?.emoji || '📝';
   };
 
+  // Format split summary text - Equal split where payer covers remainder
+  // e.g., 10,000 KRW / 3 = 3,333 each, payer pays 3,334 (extra 1 KRW)
+  const formatSplitSummary = (totalAmount: number, numPeople: number, currency: string) => {
+    if (numPeople <= 0) return '';
+    const baseAmount = Math.floor(totalAmount / numPeople);
+    const remainder = totalAmount - (baseAmount * numPeople);
+    
+    if (remainder === 0) {
+      return `Each pays: ${baseAmount.toLocaleString()} ${currency}`;
+    }
+    return `Each pays: ${baseAmount.toLocaleString()} ${currency} (payer +${remainder} ${currency})`;
+  };
+
   const toggleSplitWith = (participantId: number) => {
     setNewExpense(prev => ({
       ...prev,
@@ -579,7 +592,7 @@ export default function ExpensePage() {
                       </div>
                       {splits.length > 0 && (
                         <div className="split-summary-inline">
-                          Each pays: {(expense.amount / splits.length).toLocaleString()} {expense.currency}
+                          {formatSplitSummary(expense.amount, splits.length, expense.currency)}
                         </div>
                       )}
                     </div>
@@ -723,9 +736,9 @@ export default function ExpensePage() {
                     </label>
                   ))}
                 </div>
-                {newExpense.split_with.length > 0 && (
+                {newExpense.split_with.length > 0 && newExpense.amount && (
                   <div className="split-summary">
-                    ÷ {newExpense.split_with.length} people
+                    {formatSplitSummary(parseFloat(newExpense.amount), newExpense.split_with.length, newExpense.currency)}
                   </div>
                 )}
               </div>
