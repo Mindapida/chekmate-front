@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrips } from '../context/TripContext';
 import { useAuth } from '../context/AuthContext';
-import { diaryApi, expensesApi, commentsApi, tripsApi } from '../api';
+import { diaryApi, expensesApi, commentsApi } from '../api';
 import PhotoImage from '../components/PhotoImage';
 import BottomNav, { saveLastPage } from '../components/BottomNav';
 import './ImagesPage.css';
@@ -74,7 +74,6 @@ export default function ImagesPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'timeline'>('timeline');
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
-  const [participants, setParticipants] = useState<{ id: number; username: string }[]>([]);
   
   // Swipe handling
   const touchStartX = useRef<number>(0);
@@ -87,19 +86,6 @@ export default function ImagesPage() {
   useEffect(() => {
     saveLastPage('/images');
   }, []);
-
-  // Load participants for the trip
-  const loadParticipants = useCallback(async () => {
-    if (!currentTrip) return;
-    
-    try {
-      const parts = await tripsApi.getParticipants(currentTrip.id);
-      console.log('👥 [Images] Trip participants:', parts);
-      setParticipants(parts.map(p => ({ id: p.id, username: p.username || p.name })));
-    } catch (error) {
-      console.error('Failed to load participants:', error);
-    }
-  }, [currentTrip]);
 
   // Load photos from backend
   const loadPhotos = useCallback(async () => {
@@ -217,8 +203,7 @@ export default function ImagesPage() {
 
   useEffect(() => {
     loadPhotos();
-    loadParticipants();
-  }, [loadPhotos, loadParticipants]);
+  }, [loadPhotos]);
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
