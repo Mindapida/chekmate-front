@@ -63,6 +63,27 @@ export default function ExpensePage() {
     split_with: [] as number[],
   });
 
+  // Initialize paid_by and split_with when modal opens
+  const openAddModal = () => {
+    // Find current user's participant ID
+    const myParticipant = participants.find(p => 
+      p.id === user?.id || (p as any).username === user?.username
+    );
+    const myId = myParticipant?.id || user?.id || 0;
+    
+    setNewExpense({
+      hour: '12',
+      minute: '00',
+      amount: '',
+      currency: 'USD',
+      place: '',
+      category: '',
+      paid_by: myId,
+      split_with: myId ? [myId] : [], // Default: only payer (÷1)
+    });
+    setShowAddModal(true);
+  };
+
   // OCR states
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -407,6 +428,9 @@ export default function ExpensePage() {
   };
 
   const toggleSplitWith = (participantId: number) => {
+    // Payer cannot be unchecked
+    if (participantId === newExpense.paid_by) return;
+    
     setNewExpense(prev => ({
       ...prev,
       split_with: prev.split_with.includes(participantId)
@@ -415,8 +439,27 @@ export default function ExpensePage() {
     }));
   };
 
+  // When payer changes, automatically add them to split_with
+  const handlePayerChange = (payerId: number) => {
+    setNewExpense(prev => {
+      // Remove old payer from split_with if they were only there as payer
+      const withoutOldPayer = prev.split_with.filter(id => id !== prev.paid_by);
+      // Add new payer to split_with
+      const newSplitWith = [...withoutOldPayer, payerId];
+      
+      return {
+        ...prev,
+        paid_by: payerId,
+        split_with: [...new Set(newSplitWith)], // Remove duplicates
+      };
+    });
+  };
+
   // Toggle split for existing expense (inline editing)
-  const toggleExpenseSplit = (expenseId: number, participantId: number) => {
+  const toggleExpenseSplit = (expenseId: number, participantId: number, payerId?: number) => {
+    // Payer cannot be unchecked
+    if (payerId && participantId === payerId) return;
+    
     setExpenseSplits(prev => {
       const currentSplits = prev[expenseId] || [];
       const newSplits = currentSplits.includes(participantId)
@@ -432,6 +475,22 @@ export default function ExpensePage() {
       
       return { ...prev, [expenseId]: newSplits };
     });
+  };
+
+  // Initialize splits with payer when editing starts
+  const startEditingSplit = (expenseId: number, payerId?: number) => {
+    if (editingSplitId === expenseId) {
+      setEditingSplitId(null);
+    } else {
+      // Initialize with payer if not already set
+      if (payerId && (!expenseSplits[expenseId] || expenseSplits[expenseId].length === 0)) {
+        setExpenseSplits(prev => ({
+          ...prev,
+          [expenseId]: [payerId]
+        }));
+      }
+      setEditingSplitId(expenseId);
+    }
   };
 
   // Load expense splits from localStorage
@@ -496,7 +555,7 @@ export default function ExpensePage() {
             <span className="icon">📷</span>
             <span>Upload Screenshot</span>
           </button>
-          <button className="action-btn manual" onClick={() => setShowAddModal(true)}>
+          <button className="action-btn manual" onClick={openAddModal}>
             <span className="icon">✏️</span>
             <span>ADD MANUALLY</span>
           </button>
@@ -606,11 +665,11 @@ export default function ExpensePage() {
                     </div>
                     <div 
                       className={`payer-info ${isEditing ? 'active' : ''}`}
-                      onClick={() => setEditingSplitId(isEditing ? null : expense.id)}
+                      onClick={() => startEditingSplit(expense.id, expense.payer_id)}
                     >
                       <span className="payer-name">{isMyExpense ? `${user?.username} (Me)` : payerName}</span>
                       <span className="split-count">
-                        {participantCount > 0 ? `÷${participantCount}` : '👥'}
+                        ÷{splits.length > 0 ? splits.length : 1}
                       </span>
                     </div>
                   </div>
@@ -619,7 +678,7 @@ export default function ExpensePage() {
                   {isEditing && (
                     <div className="split-dropdown">
                       <div className="split-dropdown-header">
-                        <span>Split with:</span>
+                        <span>Split with (÷{splits.length || 1}):</span>
                         <button 
                           className="close-split"
                           onClick={() => setEditingSplitId(null)}
@@ -629,16 +688,18 @@ export default function ExpensePage() {
                         {/* All participants (including current user) */}
                         {participants.map(p => {
                           const isCurrentUser = p.id === user?.id || (p as any).username === user?.username;
+                          const isPayer = p.id === expense.payer_id;
                           const displayName = isCurrentUser ? `${(p as any).username || p.name} (Me)` : (p.name || (p as any).username || `User ${p.id}`);
                           return (
-                            <label key={p.id} className={`split-option ${isCurrentUser ? 'current-user' : ''}`}>
+                            <label key={p.id} className={`split-option ${isCurrentUser ? 'current-user' : ''} ${isPayer ? 'payer-locked' : ''}`}>
                               <input 
                                 type="checkbox"
                                 checked={splits.includes(p.id)}
-                                onChange={() => toggleExpenseSplit(expense.id, p.id)}
+                                onChange={() => toggleExpenseSplit(expense.id, p.id, expense.payer_id)}
+                                disabled={isPayer}
                               />
-                              <span className="option-check">{splits.includes(p.id) ? '✓' : ''}</span>
-                              <span className="option-name">{displayName}</span>
+                              <span className="option-check">{isPayer ? '🔒' : (splits.includes(p.id) ? '✓' : '')}</span>
+                              <span className="option-name">{displayName}{isPayer ? ' (Payer)' : ''}</span>
                             </label>
                           );
                         })}
@@ -751,7 +812,7 @@ export default function ExpensePage() {
                       <button 
                         key={p.id}
                         className={`payer-chip ${newExpense.paid_by === p.id ? 'active' : ''} ${isCurrentUser ? 'current-user' : ''}`}
-                        onClick={() => setNewExpense({...newExpense, paid_by: p.id})}
+                        onClick={() => handlePayerChange(p.id)}
                       >
                         {displayName}
                       </button>
@@ -762,21 +823,23 @@ export default function ExpensePage() {
 
               {/* Split with */}
               <div className="form-section">
-                <label>Split with</label>
+                <label>Split with (÷{newExpense.split_with.length || 1})</label>
                 <div className="split-row">
                   {/* All participants (including current user) */}
                   {participants.map(p => {
                     const isCurrentUser = p.id === user?.id || (p as any).username === user?.username;
+                    const isPayer = p.id === newExpense.paid_by;
                     const displayName = isCurrentUser ? `${(p as any).username || p.name} (Me)` : (p.name || (p as any).username || `User ${p.id}`);
                     return (
-                      <label key={p.id} className={`split-checkbox ${isCurrentUser ? 'current-user' : ''}`}>
+                      <label key={p.id} className={`split-checkbox ${isCurrentUser ? 'current-user' : ''} ${isPayer ? 'payer-locked' : ''}`}>
                         <input 
                           type="checkbox"
                           checked={newExpense.split_with.includes(p.id)}
                           onChange={() => toggleSplitWith(p.id)}
+                          disabled={isPayer} // Payer cannot be unchecked
                         />
-                        <span className="checkmark"></span>
-                        <span className="name">{displayName}</span>
+                        <span className="checkmark">{isPayer ? '🔒' : ''}</span>
+                        <span className="name">{displayName}{isPayer ? ' (Payer)' : ''}</span>
                       </label>
                     );
                   })}
