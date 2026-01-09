@@ -129,6 +129,18 @@ export default function ExpensePage() {
       try {
         const expData = await expensesApi.getByDate(currentTrip.id, selectedDate);
         setExpenses(expData);
+        
+        // Initialize expenseSplits from backend participant data
+        const newSplits: { [expenseId: number]: number[] } = {};
+        expData.forEach(exp => {
+          if (exp.participants && exp.participants.length > 0) {
+            // Use participant user_ids from backend
+            newSplits[exp.id] = exp.participants.map(p => p.user_id);
+          }
+        });
+        if (Object.keys(newSplits).length > 0) {
+          setExpenseSplits(prev => ({ ...prev, ...newSplits }));
+        }
       } catch (error) {
         console.warn('Failed to load expenses from API:', error);
         const stored = localStorage.getItem(`expenses_${currentTrip.id}_${selectedDate}`);
@@ -468,25 +480,35 @@ export default function ExpensePage() {
   };
 
   // Toggle split for existing expense (inline editing)
-  const toggleExpenseSplit = (expenseId: number, participantId: number, payerId?: number) => {
+  const toggleExpenseSplit = async (expenseId: number, participantId: number, payerId?: number) => {
     // Payer cannot be unchecked
     if (payerId && participantId === payerId) return;
     
+    const currentSplits = expenseSplits[expenseId] || [];
+    const newSplits = currentSplits.includes(participantId)
+      ? currentSplits.filter(id => id !== participantId)
+      : [...currentSplits, participantId];
+    
+    // Update local state immediately for responsive UI
     setExpenseSplits(prev => {
-      const currentSplits = prev[expenseId] || [];
-      const newSplits = currentSplits.includes(participantId)
-        ? currentSplits.filter(id => id !== participantId)
-        : [...currentSplits, participantId];
+      const allSplits = { ...prev, [expenseId]: newSplits };
       
-      // Save to localStorage
+      // Save to localStorage as backup
       if (currentTrip) {
         const storageKey = `expense_splits_${currentTrip.id}`;
-        const allSplits = { ...prev, [expenseId]: newSplits };
         localStorage.setItem(storageKey, JSON.stringify(allSplits));
       }
       
-      return { ...prev, [expenseId]: newSplits };
+      return allSplits;
     });
+    
+    // Update backend with new participant list
+    try {
+      await expensesApi.update(expenseId, { participant_ids: newSplits });
+      console.log('✅ Updated expense splits on backend:', newSplits);
+    } catch (error) {
+      console.warn('Failed to update expense splits on backend:', error);
+    }
   };
 
   // Initialize splits with payer when editing starts
@@ -590,42 +612,76 @@ export default function ExpensePage() {
 
       {/* Daily Expense Summary - My total spending */}
       {expenses.length > 0 && (() => {
-        // Calculate total I paid (where I'm the payer)
-        const myExpenses = expenses.filter(e => 
-          e.payer_id === user?.id || e.payer_username === user?.username
+        // Get my user ID
+        const myUserId = user?.id;
+        const myUsername = user?.username;
+        
+        // 1. Calculate total I PAID (where I'm the payer)
+        const myPaidExpenses = expenses.filter(e => 
+          e.payer_id === myUserId || e.payer_username === myUsername
         );
-        const totalPaidKRW = myExpenses.reduce((sum, e) => 
+        const totalIPaidKRW = myPaidExpenses.reduce((sum, e) => 
           sum + (e.amount_krw || convertToKRW(e.amount, e.currency)), 0
         );
-        const totalPaidOriginal = myExpenses.reduce((sum, e) => sum + e.amount, 0);
         
-        // Calculate my share from split expenses (where I'm a participant but not payer)
-        const sharedExpenses = expenses.filter(e => 
-          e.payer_id !== user?.id && e.payer_username !== user?.username
-        );
-        const myShareKRW = sharedExpenses.reduce((sum, e) => {
-          const numParticipants = e.participants?.length || 1;
-          const baseAmount = Math.floor((e.amount_krw || convertToKRW(e.amount, e.currency)) / numParticipants);
-          return sum + baseAmount;
-        }, 0);
+        // 2. Calculate MY SHARE (my portion of all expenses where I'm included in split)
+        let myTotalShareKRW = 0;
+        expenses.forEach(e => {
+          const splits = expenseSplits[e.id] || [];
+          const payerId = e.payer_id;
+          
+          // Check if I'm included in the split
+          const amIInSplit = splits.includes(myUserId || 0) || 
+            (splits.length === 0 && (e.payer_id === myUserId || e.payer_username === myUsername));
+          
+          if (amIInSplit && splits.length > 0) {
+            const expenseKRW = e.amount_krw || convertToKRW(e.amount, e.currency);
+            const numPeople = splits.length;
+            const baseShare = Math.floor(expenseKRW / numPeople);
+            const remainder = expenseKRW - (baseShare * numPeople);
+            
+            // If I'm the payer, I pay base + remainder, otherwise just base
+            const amIPayer = e.payer_id === myUserId || e.payer_username === myUsername;
+            myTotalShareKRW += amIPayer ? (baseShare + remainder) : baseShare;
+          } else if (splits.length === 0) {
+            // No split set - assume full amount for payer
+            if (e.payer_id === myUserId || e.payer_username === myUsername) {
+              myTotalShareKRW += e.amount_krw || convertToKRW(e.amount, e.currency);
+            }
+          }
+        });
+        
+        // 3. Calculate SETTLEMENT (I Paid - My Share)
+        // Positive = I should receive, Negative = I should pay
+        const settlementKRW = totalIPaidKRW - myTotalShareKRW;
 
         return (
           <div className="expense-summary-bar">
-            <div className="summary-main">
-              <span className="summary-label">💸 I Paid</span>
-              <span className="summary-amount">₩{totalPaidKRW.toLocaleString()}</span>
+            {/* I Paid */}
+            <div className="summary-row">
+              <div className="summary-item">
+                <span className="summary-label">💸 I Paid</span>
+                <span className="summary-amount paid">₩{totalIPaidKRW.toLocaleString()}</span>
+              </div>
+              <div className="summary-item">
+                <span className="summary-label">📊 My Share</span>
+                <span className="summary-amount share">₩{myTotalShareKRW.toLocaleString()}</span>
+              </div>
             </div>
-            {myExpenses.length > 0 && (
-              <div className="summary-detail">
-                {myExpenses.length} payment(s) ({totalPaidOriginal.toLocaleString()} {myExpenses[0]?.currency || 'KRW'})
-              </div>
-            )}
-            {myShareKRW > 0 && (
-              <div className="summary-shared">
-                <span className="shared-label">👥 To Settle</span>
-                <span className="shared-amount">₩{myShareKRW.toLocaleString()}</span>
-              </div>
-            )}
+            {/* Settlement */}
+            <div className="summary-settlement">
+              {settlementKRW >= 0 ? (
+                <>
+                  <span className="settlement-label">💰 To Receive</span>
+                  <span className="settlement-amount positive">+₩{settlementKRW.toLocaleString()}</span>
+                </>
+              ) : (
+                <>
+                  <span className="settlement-label">💳 To Pay</span>
+                  <span className="settlement-amount negative">-₩{Math.abs(settlementKRW).toLocaleString()}</span>
+                </>
+              )}
+            </div>
           </div>
         );
       })()}

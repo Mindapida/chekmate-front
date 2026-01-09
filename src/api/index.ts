@@ -296,6 +296,10 @@ export const expensesApi = {
     
     return response.json();
   },
+  update: async (expenseId: number, data: { participant_ids?: number[]; amount?: number; currency?: string; description?: string; category?: string }): Promise<Expense> => {
+    console.log('✏️ Updating expense:', { expenseId, data });
+    return apiClient.put(`/expenses/${expenseId}`, data);
+  },
   delete: async (tripId: number, expenseId: number): Promise<void> => apiClient.delete(`/expenses/${tripId}/${expenseId}`),
 };
 

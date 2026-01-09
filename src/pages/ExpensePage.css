@@ -169,22 +169,71 @@
   border-bottom: 2px solid #F59E0B;
 }
 
-.summary-main {
+.summary-row {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .summary-label {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: #92400E;
 }
 
 .summary-amount {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.summary-amount.paid {
+  color: #B45309;
+}
+
+.summary-amount.share {
+  color: #78350F;
+}
+
+.summary-settlement {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #D97706;
+}
+
+.settlement-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #78350F;
+}
+
+.settlement-amount {
   font-size: 20px;
   font-weight: 800;
-  color: #B45309;
+}
+
+.settlement-amount.positive {
+  color: #059669;
+}
+
+.settlement-amount.negative {
+  color: #DC2626;
+}
+
+/* Legacy - keep for backwards compatibility */
+.summary-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .summary-detail {
