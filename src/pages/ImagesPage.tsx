@@ -495,12 +495,6 @@ export default function ImagesPage() {
                             fileName={photo.fileName}
                             className="day-photo-img"
                           />
-                          {photo.type === 'expense' && photo.expenseInfo && (
-                            <div className="photo-expense-label">
-                              <span>{getCategoryEmoji(photo.expenseInfo.category)}</span>
-                              <span>{photo.expenseInfo.amount.toLocaleString()}</span>
-                            </div>
-                          )}
                           {!isMyPhoto && (
                             <span className="photo-shared-indicator">👥</span>
                           )}
@@ -564,6 +558,24 @@ export default function ImagesPage() {
                 </button>
               )}
             </div>
+
+            {/* Expense Info - shown when photo is linked to an expense */}
+            {selectedPhoto.type === 'expense' && selectedPhoto.expenseInfo && (
+              <div className="modal-expense-info">
+                <div className="expense-info-row">
+                  <span className="expense-info-icon">{getCategoryEmoji(selectedPhoto.expenseInfo.category)}</span>
+                  <span className="expense-info-name">{selectedPhoto.expenseInfo.place}</span>
+                </div>
+                <div className="expense-info-details">
+                  <span className="expense-info-amount">
+                    {selectedPhoto.expenseInfo.amount.toLocaleString()} {selectedPhoto.expenseInfo.currency}
+                  </span>
+                  <span className="expense-info-time">
+                    🕐 {selectedPhoto.expenseInfo.time}
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Chat-like Comments Section - shared with all participants */}
             <div className="comments-section">

@@ -571,6 +571,50 @@
   border-radius: 8px;
 }
 
+/* Modal Expense Info */
+.modal-expense-info {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 8px 16px 0;
+}
+
+.expense-info-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.expense-info-icon {
+  font-size: 20px;
+}
+
+.expense-info-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1F2937;
+}
+
+.expense-info-details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-left: 30px;
+}
+
+.expense-info-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: #D97706;
+}
+
+.expense-info-time {
+  font-size: 13px;
+  color: #6B7280;
+}
+
 /* Navigation Buttons */
 .nav-btn {
   position: absolute;
