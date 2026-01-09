@@ -386,25 +386,6 @@ export default function CalendarPage() {
           </div>
         </header>
         
-        {/* Participants Info Bar - Shows who's sharing this trip */}
-        {participants.length > 0 && (
-          <div className="participants-bar">
-            <span className="participants-label">👥 Participants:</span>
-            <div className="participants-list">
-              {participants.map((p) => (
-                <span 
-                  key={p.id} 
-                  className={`participant-chip ${p.username === user?.username ? 'me' : ''}`}
-                >
-                  {p.username === user?.username ? 'Me' : p.username}
-                </span>
-              ))}
-            </div>
-            {participants.length > 1 && (
-              <span className="sharing-indicator">📸 Sharing Photos</span>
-            )}
-          </div>
-        )}
 
         {/* Calendar */}
         <div className="calendar-wrapper">
