@@ -231,15 +231,45 @@
   letter-spacing: 0.5px;
 }
 
-/* Set Current Button */
-.set-current-btn {
-  width: 40px;
-  height: 40px;
+/* Trip Actions Container */
+.trip-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Edit Trip Button */
+.edit-trip-btn {
+  width: 36px;
+  height: 36px;
   border: none;
   background: transparent;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 24px;
+  font-size: 16px;
+  color: #9CA3AF;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-trip-btn:hover {
+  color: #2B7FFF;
+  background: rgba(43, 127, 255, 0.1);
+  transform: scale(1.1);
+}
+
+/* Set Current Button */
+.set-current-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 20px;
   color: #D1D5DB;
   transition: all 0.3s;
   display: flex;

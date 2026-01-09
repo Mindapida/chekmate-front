@@ -474,6 +474,104 @@
   color: #1E40AF;
 }
 
+/* Modal Actions */
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Delete Button */
+.delete-button {
+  background: #FEE2E2;
+  border: 2px solid #FECACA;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #DC2626;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.delete-button:hover {
+  background: #FCA5A5;
+  border-color: #F87171;
+  transform: translateY(-1px);
+}
+
+.delete-button:active {
+  transform: translateY(0);
+}
+
+/* Delete Confirmation */
+.delete-confirm {
+  background: #FEF2F2;
+  border: 2px solid #FECACA;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.delete-confirm-text {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: #DC2626;
+}
+
+.delete-confirm-buttons {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.confirm-yes {
+  flex: 1;
+  background: #DC2626;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.confirm-yes:hover {
+  background: #B91C1C;
+  transform: scale(1.02);
+}
+
+.confirm-no {
+  flex: 1;
+  background: white;
+  border: 2px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.confirm-no:hover {
+  background: #F3F4F6;
+  border-color: #D1D5DB;
+}
+
 /* Create Button */
 .create-button {
   background: #9CA3AF;

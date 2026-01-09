@@ -10,6 +10,7 @@ interface TripContextType {
   isLoading: boolean;
   error: string | null;
   createTrip: (tripData: { name: string; startDate: string; endDate: string }) => Promise<Trip>;
+  updateTrip: (tripId: number, tripData: { name?: string; startDate?: string; endDate?: string }) => Promise<Trip>;
   deleteTrip: (tripId: number) => Promise<void>;
   refreshTrips: () => Promise<void>;
 }
@@ -92,6 +93,32 @@ export function TripProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Update a trip
+  const updateTrip = useCallback(async (tripId: number, tripData: { name?: string; startDate?: string; endDate?: string }): Promise<Trip> => {
+    setError(null);
+    
+    try {
+      const updatedTrip = await tripsApi.update(tripId, {
+        name: tripData.name,
+        start_date: tripData.startDate,
+        end_date: tripData.endDate,
+      });
+      
+      setTrips(prev => prev.map(t => t.id === tripId ? updatedTrip : t));
+      
+      // If updated trip is current, update it
+      if (currentTrip?.id === tripId) {
+        setCurrentTripState(updatedTrip);
+      }
+      
+      return updatedTrip;
+    } catch (err) {
+      console.error('Failed to update trip:', err);
+      setError('Failed to update trip');
+      throw err;
+    }
+  }, [currentTrip]);
+
   // Delete a trip
   const deleteTrip = useCallback(async (tripId: number): Promise<void> => {
     setError(null);
@@ -140,6 +167,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
         isLoading,
         error,
         createTrip,
+        updateTrip,
         deleteTrip,
         refreshTrips,
       }}

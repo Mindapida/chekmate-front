@@ -58,10 +58,11 @@ export default function HomePage() {
   }, []);
   
   const { user, logout } = useAuth();
-  const { trips, currentTrip, setCurrentTrip, isLoading, createTrip } = useTrips();
+  const { trips, currentTrip, setCurrentTrip, isLoading, createTrip, updateTrip, deleteTrip } = useTrips();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showTripSelector, setShowTripSelector] = useState(false);
   const [tripStats, setTripStats] = useState<{ [tripId: number]: { expenseCount: number; photoCount: number; participantCount: number } }>({});
+  const [editingTrip, setEditingTrip] = useState<typeof trips[0] | null>(null);
 
   // Load stats for all trips
   const loadAllTripStats = useCallback(() => {
@@ -84,7 +85,16 @@ export default function HomePage() {
   }, [trips, currentTrip]);
 
   const handleTripClick = (tripId: number) => navigate(`/trip/${tripId}`);
-  const handleAddTrip = () => setIsModalOpen(true);
+  const handleAddTrip = () => {
+    setEditingTrip(null);
+    setIsModalOpen(true);
+  };
+  
+  const handleEditTrip = (e: React.MouseEvent, trip: typeof trips[0]) => {
+    e.stopPropagation();
+    setEditingTrip(trip);
+    setIsModalOpen(true);
+  };
 
   const handleCreateTrip = async (tripData: { name: string; startDate: string; endDate: string }) => {
     const newTrip = await createTrip(tripData);
@@ -92,6 +102,14 @@ export default function HomePage() {
     if (trips.length === 0) {
       setCurrentTrip(newTrip);
     }
+  };
+  
+  const handleUpdateTrip = async (tripId: number, tripData: { name: string; startDate: string; endDate: string }) => {
+    await updateTrip(tripId, tripData);
+  };
+  
+  const handleDeleteTrip = async (tripId: number) => {
+    await deleteTrip(tripId);
   };
 
   const handleSetCurrentTrip = (e: React.MouseEvent, trip: typeof trips[0]) => {
@@ -228,13 +246,22 @@ export default function HomePage() {
                         <span className="stat-mini">📷 {stats.photoCount}</span>
                       </div>
                     </div>
-                    <button 
-                      className={`set-current-btn ${currentTrip?.id === trip.id ? 'active' : ''}`}
-                      onClick={(e) => handleSetCurrentTrip(e, trip)}
-                      title={currentTrip?.id === trip.id ? 'Current trip' : 'Set as current'}
-                    >
-                      {currentTrip?.id === trip.id ? '★' : '☆'}
-                    </button>
+                    <div className="trip-actions">
+                      <button 
+                        className="edit-trip-btn"
+                        onClick={(e) => handleEditTrip(e, trip)}
+                        title="Edit trip"
+                      >
+                        ✏️
+                      </button>
+                      <button 
+                        className={`set-current-btn ${currentTrip?.id === trip.id ? 'active' : ''}`}
+                        onClick={(e) => handleSetCurrentTrip(e, trip)}
+                        title={currentTrip?.id === trip.id ? 'Current trip' : 'Set as current'}
+                      >
+                        {currentTrip?.id === trip.id ? '★' : '☆'}
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -251,8 +278,14 @@ export default function HomePage() {
       
       <AddTripModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingTrip(null);
+        }}
         onCreateTrip={handleCreateTrip}
+        onUpdateTrip={handleUpdateTrip}
+        onDeleteTrip={handleDeleteTrip}
+        editingTrip={editingTrip}
       />
     </div>
   );

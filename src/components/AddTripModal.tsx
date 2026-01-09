@@ -1,25 +1,45 @@
 import { useState, useEffect } from 'react';
 import './AddTripModal.css';
+import type { Trip } from '../types/api';
 
 interface AddTripModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateTrip: (tripData: { name: string; startDate: string; endDate: string }) => void;
+  onUpdateTrip?: (tripId: number, tripData: { name: string; startDate: string; endDate: string }) => void;
+  onDeleteTrip?: (tripId: number) => void;
+  editingTrip?: Trip | null;
 }
 
-export default function AddTripModal({ isOpen, onClose, onCreateTrip }: AddTripModalProps) {
+export default function AddTripModal({ isOpen, onClose, onCreateTrip, onUpdateTrip, onDeleteTrip, editingTrip }: AddTripModalProps) {
   const [tripName, setTripName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showCalendar, setShowCalendar] = useState<'start' | 'end' | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isClosing, setIsClosing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const isEditing = !!editingTrip;
 
   useEffect(() => {
     if (isOpen) {
       setIsClosing(false);
+      if (editingTrip) {
+        setTripName(editingTrip.name);
+        setStartDate(editingTrip.start_date);
+        setEndDate(editingTrip.end_date);
+        // Set calendar to start date month
+        setCurrentMonth(new Date(editingTrip.start_date));
+      } else {
+        setTripName('');
+        setStartDate('');
+        setEndDate('');
+        setCurrentMonth(new Date());
+      }
+      setShowDeleteConfirm(false);
     }
-  }, [isOpen]);
+  }, [isOpen, editingTrip]);
 
   if (!isOpen && !isClosing) return null;
 
@@ -32,12 +52,24 @@ export default function AddTripModal({ isOpen, onClose, onCreateTrip }: AddTripM
       setStartDate('');
       setEndDate('');
       setShowCalendar(null);
+      setShowDeleteConfirm(false);
     }, 300);
   };
 
   const handleSubmit = () => {
     if (tripName && startDate && endDate) {
-      onCreateTrip({ name: tripName, startDate, endDate });
+      if (isEditing && editingTrip && onUpdateTrip) {
+        onUpdateTrip(editingTrip.id, { name: tripName, startDate, endDate });
+      } else {
+        onCreateTrip({ name: tripName, startDate, endDate });
+      }
+      handleClose();
+    }
+  };
+
+  const handleDelete = () => {
+    if (editingTrip && onDeleteTrip) {
+      onDeleteTrip(editingTrip.id);
       handleClose();
     }
   };
@@ -151,7 +183,7 @@ export default function AddTripModal({ isOpen, onClose, onCreateTrip }: AddTripM
       <div className={`modal-container ${isClosing ? 'closing' : ''}`} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-header">
-          <h2 className="modal-title">Add New Trip</h2>
+          <h2 className="modal-title">{isEditing ? 'Edit Trip' : 'Add New Trip'}</h2>
           <button className="close-button" onClick={handleClose}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M15 5L5 15M5 5L15 15" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -253,18 +285,43 @@ export default function AddTripModal({ isOpen, onClose, onCreateTrip }: AddTripM
             </div>
           )}
 
-          {/* Create Button */}
-          <button 
-            className={`create-button animate-in ${tripName && startDate && endDate ? 'ready' : ''}`}
-            style={{ animationDelay: '0.2s' }}
-            onClick={handleSubmit}
-            disabled={!tripName || !startDate || !endDate}
-          >
-            <span className="button-text">Create Trip</span>
-            {tripName && startDate && endDate && (
-              <span className="button-icon">✈️</span>
+          {/* Action Buttons */}
+          <div className="modal-actions">
+            {/* Delete Button (only in edit mode) */}
+            {isEditing && onDeleteTrip && (
+              <>
+                {showDeleteConfirm ? (
+                  <div className="delete-confirm animate-in">
+                    <span className="delete-confirm-text">Delete this trip?</span>
+                    <div className="delete-confirm-buttons">
+                      <button className="confirm-yes" onClick={handleDelete}>Yes, Delete</button>
+                      <button className="confirm-no" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button className="delete-button" onClick={() => setShowDeleteConfirm(true)}>
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                      <path d="M2.25 4.5H15.75M6.75 4.5V3C6.75 2.60218 6.90804 2.22064 7.18934 1.93934C7.47064 1.65804 7.85218 1.5 8.25 1.5H9.75C10.1478 1.5 10.5294 1.65804 10.8107 1.93934C11.092 2.22064 11.25 2.60218 11.25 3V4.5M14.25 4.5V15C14.25 15.3978 14.092 15.7794 13.8107 16.0607C13.5294 16.342 13.1478 16.5 12.75 16.5H5.25C4.85218 16.5 4.47064 16.342 4.18934 16.0607C3.90804 15.7794 3.75 15.3978 3.75 15V4.5H14.25Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Delete Trip
+                  </button>
+                )}
+              </>
             )}
-          </button>
+
+            {/* Save/Create Button */}
+            <button 
+              className={`create-button animate-in ${tripName && startDate && endDate ? 'ready' : ''}`}
+              style={{ animationDelay: '0.2s' }}
+              onClick={handleSubmit}
+              disabled={!tripName || !startDate || !endDate}
+            >
+              <span className="button-text">{isEditing ? 'Save Changes' : 'Create Trip'}</span>
+              {tripName && startDate && endDate && (
+                <span className="button-icon">✈️</span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

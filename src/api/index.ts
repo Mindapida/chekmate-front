@@ -191,6 +191,7 @@ export const tripsApi = {
   getAll: async (): Promise<Trip[]> => apiClient.get('/trips'),
   getById: async (id: number): Promise<Trip> => apiClient.get(`/trips/${id}`),
   create: async (data: { name: string; start_date: string; end_date: string }): Promise<Trip> => apiClient.post('/trips', data),
+  update: async (id: number, data: { name?: string; start_date?: string; end_date?: string }): Promise<Trip> => apiClient.put(`/trips/${id}`, data),
   delete: async (id: number): Promise<void> => apiClient.delete(`/trips/${id}`),
   getParticipants: async (tripId: number): Promise<TripParticipant[]> => apiClient.get(`/trips/${tripId}/participants`),
   // Add participant by username (backend searches registered users)
