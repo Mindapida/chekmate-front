@@ -65,11 +65,14 @@ export default function ExpensePage() {
 
   // Initialize paid_by and split_with when modal opens
   const openAddModal = () => {
-    // Find current user's participant ID
+    // Find current user - use user_id field from participant or match by username
     const myParticipant = participants.find(p => 
-      p.id === user?.id || (p as any).username === user?.username
+      (p as any).user_id === user?.id || (p as any).username === user?.username
     );
-    const myId = myParticipant?.id || user?.id || 0;
+    // Use user_id if available, otherwise use participant id, finally fallback to user.id
+    const myUserId = (myParticipant as any)?.user_id || myParticipant?.id || user?.id || 0;
+    
+    console.log('📋 openAddModal - user:', user?.id, 'participant:', myParticipant, 'myUserId:', myUserId);
     
     setNewExpense({
       hour: '12',
@@ -78,8 +81,8 @@ export default function ExpensePage() {
       currency: 'USD',
       place: '',
       category: '',
-      paid_by: myId,
-      split_with: myId ? [myId] : [], // Default: only payer (÷1)
+      paid_by: myUserId,
+      split_with: myUserId ? [myUserId] : [], // Default: only payer (÷1)
     });
     setShowAddModal(true);
   };
@@ -142,10 +145,12 @@ export default function ExpensePage() {
         try {
           const parsed = JSON.parse(storedParticipants);
           console.log('📋 Loaded participants from localStorage:', parsed);
-          // Normalize participant data - ensure 'name' field exists
-          const normalized = parsed.map((p: { id: number; name?: string; username?: string }) => ({
+          // Normalize participant data - ensure 'name' and 'user_id' fields exist
+          const normalized = parsed.map((p: { id: number; name?: string; username?: string; user_id?: number }) => ({
             id: p.id,
             name: p.name || p.username || `User ${p.id}`,
+            username: p.username,
+            user_id: p.user_id || p.id, // Use user_id if available, else use id
             trip_id: currentTrip.id,
           }));
           allParticipants = normalized;
@@ -189,6 +194,11 @@ export default function ExpensePage() {
     
     const time = `${newExpense.hour.padStart(2, '0')}:${newExpense.minute.padStart(2, '0')}`;
     
+    // Get user_ids for participants (use user_id field if available, else id)
+    const getParticipantUserIds = () => {
+      return participants.map(p => (p as any).user_id || p.id);
+    };
+    
     // Backend expects: no date (it's in URL), and participant_ids is required
     const expenseData = {
       time: time,
@@ -196,12 +206,14 @@ export default function ExpensePage() {
       currency: newExpense.currency,
       category: newExpense.category,
       place: newExpense.place || null,
-      paid_by: newExpense.paid_by || null,
+      paid_by: newExpense.paid_by || user?.id || null,
       // Use selected participants or all participants if none selected
       participant_ids: newExpense.split_with.length > 0 
         ? newExpense.split_with 
-        : participants.map(p => p.id),
+        : getParticipantUserIds(),
     };
+    
+    console.log('💰 handleAddExpense - expenseData:', expenseData);
 
     try {
       const created = await expensesApi.create(currentTrip.id, selectedDate, expenseData);
