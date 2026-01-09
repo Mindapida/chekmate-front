@@ -7,6 +7,7 @@ import './TripDetailPage.css';
 
 interface Participant {
   id: number;
+  user_id?: number; // user_id for backend API calls
   name: string;
   username: string;
 }
@@ -63,8 +64,10 @@ export default function TripDetailPage() {
       const apiParticipants = await tripsApi.getParticipants(trip.id);
       console.log('📋 Loaded participants from API:', apiParticipants);
       
+      // Backend returns id as user_id, so we map it properly
       const mapped: Participant[] = apiParticipants.map(p => ({
-        id: p.id,
+        id: p.id,  // This is the user_id from backend
+        user_id: p.id, // Explicitly add user_id for clarity
         name: p.username || p.name,
         username: p.username || p.name,
       }));
@@ -264,30 +267,36 @@ export default function TripDetailPage() {
   };
 
   // Add participant by selecting from user list
-  const handleAddParticipant = (user: { id: number; username: string }) => {
+  const handleAddParticipant = async (user: { id: number; username: string }) => {
     if (!trip) return;
     
     console.log('👥 Adding participant:', user);
-    
-    const newParticipant: Participant = {
-      id: user.id,
-      name: user.username,
-      username: user.username,
-    };
     
     // Check if already added
     if (participants.some(p => p.id === user.id)) {
       return;
     }
     
-    const updated = [...participants, newParticipant];
-    setParticipants(updated);
-    localStorage.setItem(`trip_participants_${trip.id}`, JSON.stringify(updated));
-    
-    // Also call API to add participant
-    tripsApi.addParticipant(trip.id, user.username).catch(err => {
-      console.error('Failed to add participant via API:', err);
-    });
+    // Call API FIRST to ensure participant is added to database
+    try {
+      await tripsApi.addParticipant(trip.id, user.username);
+      console.log('✅ Participant added to backend');
+      
+      // Only update local state after successful API call
+      const newParticipant: Participant = {
+        id: user.id,
+        user_id: user.id, // Explicitly set user_id for backend API calls
+        name: user.username,
+        username: user.username,
+      };
+      
+      const updated = [...participants, newParticipant];
+      setParticipants(updated);
+      localStorage.setItem(`trip_participants_${trip.id}`, JSON.stringify(updated));
+    } catch (err) {
+      console.error('❌ Failed to add participant via API:', err);
+      alert('Failed to add participant. Please try again.');
+    }
   };
 
   const handleRemoveParticipant = (participantId: number) => {
