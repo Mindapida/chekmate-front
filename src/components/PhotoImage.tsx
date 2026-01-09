@@ -4,6 +4,7 @@ import { tokenManager } from '../api/client';
 interface PhotoImageProps {
   photoId: number;
   filePath: string;
+  fileUrl?: string; // New: direct URL from backend (e.g., "/static/xxx.jpg")
   fileName: string;
   alt?: string;
   className?: string;
@@ -16,6 +17,7 @@ const blobCache: Record<string, string> = {};
 export default function PhotoImage({ 
   photoId, 
   filePath, 
+  fileUrl,
   fileName, 
   alt = '', 
   className = '',
@@ -39,14 +41,24 @@ export default function PhotoImage({
       // Clean up file path
       const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
       
+      // Extract filename from path
+      const filename = cleanPath.split('/').pop() || cleanPath;
+      
       // URL patterns to try (through Vercel proxy)
-      const urls = [
-        `/${cleanPath}`,
-        `/${cleanPath.replace('app/', '')}`,
-        `/static/${cleanPath.split('/').pop()}`,
-      ];
+      // Prefer fileUrl from backend if available
+      const urls = fileUrl 
+        ? [
+            fileUrl,  // Backend provided URL (e.g., "/static/xxx.jpg")
+            `/static/${filename}`,
+            `/${cleanPath}`,
+          ]
+        : [
+            `/static/${filename}`,
+            `/${cleanPath}`,
+            `/${cleanPath.replace('app/', '')}`,
+          ];
 
-      console.log(`🖼️ PhotoImage ${photoId}: Loading...`, { filePath, urls });
+      console.log(`🖼️ PhotoImage ${photoId}: Loading...`, { filePath, fileUrl, urls });
 
       // Try each URL
       for (const url of urls) {
@@ -74,9 +86,9 @@ export default function PhotoImage({
 
       // Try API endpoint with auth token
       try {
-        console.log(`  Trying API: /api/photos/${photoId}/image`);
+        console.log(`  Trying API: /api/photos/${photoId}`);
         const token = tokenManager.getToken();
-        const response = await fetch(`/api/photos/${photoId}/image`, {
+        const response = await fetch(`/api/photos/${photoId}`, {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         });
         
@@ -90,6 +102,22 @@ export default function PhotoImage({
             setLoading(false);
             console.log(`  ✅ API Success`);
             return;
+          } else {
+            // JSON response with file_url
+            const data = await response.json();
+            if (data.file_url) {
+              const staticUrl = data.file_url;
+              const staticResponse = await fetch(staticUrl);
+              if (staticResponse.ok) {
+                const blob = await staticResponse.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                blobCache[cacheKey] = blobUrl;
+                setImageUrl(blobUrl);
+                setLoading(false);
+                console.log(`  ✅ API file_url Success: ${staticUrl}`);
+                return;
+              }
+            }
           }
         }
       } catch (e) {
@@ -103,7 +131,7 @@ export default function PhotoImage({
     };
 
     loadImage();
-  }, [photoId, filePath]);
+  }, [photoId, filePath, fileUrl]);
 
   if (loading) {
     return (

@@ -24,6 +24,7 @@ interface EmojiData {
 interface PhotoData {
   photoId: number;
   filePath: string;
+  fileUrl?: string; // New: direct URL from backend
   fileName: string;
   author: string;
   isExpense: boolean;
@@ -124,6 +125,7 @@ export default function CalendarPage() {
               photos.push({
                 photoId: photo.id,
                 filePath: photo.file_path,
+                fileUrl: (photo as any).file_url, // New: direct URL from backend
                 fileName: photo.file_name,
                 author: entry.username,
                 isExpense: !!entry.expense_id,
@@ -449,6 +451,7 @@ export default function CalendarPage() {
                       <PhotoImage
                         photoId={photoData.photos[0].photoId}
                         filePath={photoData.photos[0].filePath}
+                        fileUrl={photoData.photos[0].fileUrl}
                         fileName={photoData.photos[0].fileName}
                         className="calendar-day-photo"
                       />
@@ -596,6 +599,7 @@ export default function CalendarPage() {
                       <PhotoImage
                         photoId={photo.photoId}
                         filePath={photo.filePath}
+                        fileUrl={photo.fileUrl}
                         fileName={photo.fileName}
                         className="preview-photo-img"
                       />

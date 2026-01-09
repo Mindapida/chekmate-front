@@ -12,6 +12,7 @@ import '../components/PhotoImage.css';
 interface DiaryPhoto {
   id: number;
   file_path: string;
+  file_url?: string; // New: direct URL from backend
   file_name: string;
   memo: string | null;
   order_index: number;
@@ -351,6 +352,7 @@ export default function PhotoMemoPage() {
                             <PhotoImage
                               photoId={photo.id}
                               filePath={photo.file_path}
+                              fileUrl={photo.file_url}
                               fileName={photo.file_name}
                               className="expense-photo-img"
                             />
@@ -399,6 +401,7 @@ export default function PhotoMemoPage() {
                 <PhotoImage
                   photoId={photo.id}
                   filePath={photo.file_path}
+                  fileUrl={photo.file_url}
                   fileName={photo.file_name}
                   className="dump-photo-img"
                 />

@@ -12,6 +12,7 @@ import '../components/PhotoImage.css';
 interface DiaryPhoto {
   id: number;
   file_path: string;
+  file_url?: string; // New: direct URL from backend
   file_name: string;
   memo: string | null;
   order_index: number;
@@ -36,6 +37,7 @@ interface PhotoEntry {
   photoId: number;
   type: 'expense' | 'dump';
   filePath: string;
+  fileUrl?: string; // New: direct URL from backend
   fileName: string;
   date: string;
   author: string;
@@ -142,6 +144,7 @@ export default function ImagesPage() {
                 photoId: photo.id,
                 type: entry.expense_id ? 'expense' : 'dump',
                 filePath: photo.file_path,
+                fileUrl: photo.file_url, // New: direct URL from backend
                 fileName: photo.file_name,
                 date: dateStr,
                 author: entry.username,
@@ -412,6 +415,7 @@ export default function ImagesPage() {
                   <PhotoImage
                     photoId={photo.photoId}
                     filePath={photo.filePath}
+                    fileUrl={photo.fileUrl}
                     fileName={photo.fileName}
                     className="grid-photo-img"
                   />
@@ -458,6 +462,7 @@ export default function ImagesPage() {
                           <PhotoImage
                             photoId={photo.photoId}
                             filePath={photo.filePath}
+                            fileUrl={photo.fileUrl}
                             fileName={photo.fileName}
                             className="day-photo-img"
                           />
@@ -513,6 +518,7 @@ export default function ImagesPage() {
               <PhotoImage
                 photoId={selectedPhoto.photoId}
                 filePath={selectedPhoto.filePath}
+                fileUrl={selectedPhoto.fileUrl}
                 fileName={selectedPhoto.fileName}
                 className="modal-photo-img"
               />

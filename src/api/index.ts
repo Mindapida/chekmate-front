@@ -302,6 +302,7 @@ export const expensesApi = {
 interface DiaryPhoto {
   id: number;
   file_path: string;
+  file_url?: string; // New field from backend - direct URL to static file
   file_name: string;
   memo: string | null;
   order_index: number;
@@ -540,9 +541,17 @@ export const diaryApi = {
     }
   },
   
-  // Helper: construct full photo URL from file_path
-  getPhotoUrl: (filePath: string, _photoId?: number): string => {
+  // Helper: construct full photo URL from file_path or file_url
+  getPhotoUrl: (filePath: string, fileUrl?: string): string => {
     const backendUrl = getBackendUrl();
+    
+    // Prefer file_url from backend if available (e.g., "/static/filename.jpg")
+    if (fileUrl) {
+      // file_url is usually a relative path like "/static/xxx.jpg"
+      const fullUrl = backendUrl ? `${backendUrl}${fileUrl}` : fileUrl;
+      console.log('🖼️ Photo URL (from file_url):', fullUrl);
+      return fullUrl;
+    }
     
     // Handle both absolute and relative paths
     if (filePath.startsWith('http')) {
@@ -553,6 +562,13 @@ export const diaryApi = {
     // Use static file URL - goes through Vercel proxy in production
     // Remove leading slash if present
     let cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+    
+    // Extract just the filename if it's a full path
+    if (cleanPath.includes('/')) {
+      const parts = cleanPath.split('/');
+      const filename = parts[parts.length - 1];
+      cleanPath = `static/${filename}`;
+    }
     
     // Construct URL - in production this is relative (proxied by Vercel)
     // In dev this goes directly to backend
