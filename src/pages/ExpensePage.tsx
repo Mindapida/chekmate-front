@@ -127,7 +127,9 @@ export default function ExpensePage() {
       
       // Load expenses
       try {
+        console.log('📊 Loading expenses for trip:', currentTrip.id, 'date:', selectedDate);
         const expData = await expensesApi.getByDate(currentTrip.id, selectedDate);
+        console.log('📊 Loaded expenses from API:', expData.length, 'items', expData);
         setExpenses(expData);
         
         // Initialize expenseSplits from backend participant data
@@ -141,8 +143,13 @@ export default function ExpensePage() {
         if (Object.keys(newSplits).length > 0) {
           setExpenseSplits(prev => ({ ...prev, ...newSplits }));
         }
-      } catch (error) {
-        console.warn('Failed to load expenses from API:', error);
+      } catch (error: any) {
+        console.error('❌ Failed to load expenses from API:', error);
+        console.error('❌ Error status:', error?.response?.status || error?.message);
+        // If 403, user is not a participant of this trip
+        if (error?.message?.includes('403') || error?.response?.status === 403) {
+          console.error('🚫 Access denied - user may not be a participant of this trip');
+        }
         const stored = localStorage.getItem(`expenses_${currentTrip.id}_${selectedDate}`);
         if (stored) setExpenses(JSON.parse(stored));
       }
