@@ -635,7 +635,6 @@ export default function ExpensePage() {
         let myTotalShareKRW = 0;
         expenses.forEach(e => {
           const splits = expenseSplits[e.id] || [];
-          const payerId = e.payer_id;
           
           // Check if I'm included in the split
           const amIInSplit = splits.includes(myUserId || 0) || 
@@ -717,7 +716,6 @@ export default function ExpensePage() {
                 (expense.payer_id === user?.id ? user?.username : null) ||
                 'Unknown';
               const isMyExpense = expense.payer_id === user?.id || expense.payer_username === user?.username;
-              const participantCount = expense.participants?.length || splits.length;
               
               return (
                 <div key={expense.id} className="expense-card-wrapper">
