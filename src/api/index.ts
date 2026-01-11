@@ -296,7 +296,7 @@ export const expensesApi = {
     
     return response.json();
   },
-  update: async (expenseId: number, data: { participant_ids?: number[]; amount?: number; currency?: string; description?: string; category?: string }): Promise<Expense> => {
+  update: async (expenseId: number, data: { participant_ids?: number[]; amount?: number; currency?: string; description?: string; category?: string; time?: string }): Promise<Expense> => {
     console.log('✏️ Updating expense:', { expenseId, data });
     return apiClient.put(`/expenses/${expenseId}`, data);
   },

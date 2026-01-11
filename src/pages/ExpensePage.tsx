@@ -100,7 +100,6 @@ export default function ExpensePage() {
   // Expense detail editing state
   const [editingExpenseId, setEditingExpenseId] = useState<number | null>(null);
   const [editingPlace, setEditingPlace] = useState('');
-  const [editingTime, setEditingTime] = useState('');
   const [editingHour, setEditingHour] = useState('12');
   const [editingMinute, setEditingMinute] = useState('00');
 
@@ -554,7 +553,6 @@ export default function ExpensePage() {
       setEditingHour('12');
       setEditingMinute('00');
     }
-    setEditingTime(expense.time || '');
     // Close split editing if open
     setEditingSplitId(null);
   };
@@ -591,7 +589,8 @@ export default function ExpensePage() {
   const cancelEditingExpense = () => {
     setEditingExpenseId(null);
     setEditingPlace('');
-    setEditingTime('');
+    setEditingHour('12');
+    setEditingMinute('00');
   };
 
   // Load expense splits from localStorage
