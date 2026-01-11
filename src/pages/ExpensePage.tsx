@@ -96,6 +96,13 @@ export default function ExpensePage() {
   // Split selection state (for inline editing)
   const [editingSplitId, setEditingSplitId] = useState<number | null>(null);
   const [expenseSplits, setExpenseSplits] = useState<{ [expenseId: number]: number[] }>({});
+  
+  // Expense detail editing state
+  const [editingExpenseId, setEditingExpenseId] = useState<number | null>(null);
+  const [editingPlace, setEditingPlace] = useState('');
+  const [editingTime, setEditingTime] = useState('');
+  const [editingHour, setEditingHour] = useState('12');
+  const [editingMinute, setEditingMinute] = useState('00');
 
   // Load exchange rate - using free API or fallback
   useEffect(() => {
@@ -534,6 +541,59 @@ export default function ExpensePage() {
     }
   };
 
+  // Start editing expense details (place/time)
+  const startEditingExpense = (expense: Expense) => {
+    setEditingExpenseId(expense.id);
+    setEditingPlace(expense.place || expense.description || '');
+    // Parse time if exists (format: "HH:MM")
+    if (expense.time) {
+      const [hour, minute] = expense.time.split(':');
+      setEditingHour(hour || '12');
+      setEditingMinute(minute || '00');
+    } else {
+      setEditingHour('12');
+      setEditingMinute('00');
+    }
+    setEditingTime(expense.time || '');
+    // Close split editing if open
+    setEditingSplitId(null);
+  };
+
+  // Save edited expense
+  const saveEditedExpense = async (expenseId: number) => {
+    const newTime = `${editingHour}:${editingMinute}`;
+    
+    console.log('💾 Saving expense edit:', { expenseId, place: editingPlace, time: newTime });
+    
+    try {
+      const updated = await expensesApi.update(expenseId, {
+        description: editingPlace,
+        time: newTime,
+      });
+      
+      console.log('✅ Expense updated:', updated);
+      
+      // Update local state
+      setExpenses(prev => prev.map(e => 
+        e.id === expenseId 
+          ? { ...e, place: editingPlace, description: editingPlace, time: newTime }
+          : e
+      ));
+      
+      setEditingExpenseId(null);
+    } catch (error) {
+      console.error('❌ Failed to update expense:', error);
+      alert('Failed to update expense. Please try again.');
+    }
+  };
+
+  // Cancel editing
+  const cancelEditingExpense = () => {
+    setEditingExpenseId(null);
+    setEditingPlace('');
+    setEditingTime('');
+  };
+
   // Load expense splits from localStorage
   useEffect(() => {
     if (currentTrip) {
@@ -709,7 +769,8 @@ export default function ExpensePage() {
           <div className="expenses-list">
             {expenses.map((expense) => {
               const splits = expenseSplits[expense.id] || [];
-              const isEditing = editingSplitId === expense.id;
+              const isSplitEditing = editingSplitId === expense.id;
+              const isDetailEditing = editingExpenseId === expense.id;
               
               // Determine payer name - show actual payer username from API
               const payerName = expense.payer_username || 
@@ -719,16 +780,65 @@ export default function ExpensePage() {
               
               return (
                 <div key={expense.id} className="expense-card-wrapper">
-                  <div className={`expense-card ${!isMyExpense ? 'shared-expense' : ''}`}>
-                    <div className="expense-time">{expense.time || '--:--'}</div>
+                  <div className={`expense-card ${!isMyExpense ? 'shared-expense' : ''} ${isDetailEditing ? 'editing' : ''}`}>
+                    {/* Time - clickable to edit */}
+                    {isDetailEditing ? (
+                      <div className="expense-time editing">
+                        <select 
+                          value={editingHour} 
+                          onChange={(e) => setEditingHour(e.target.value)}
+                          className="time-select"
+                        >
+                          {hourOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                        </select>
+                        :
+                        <select 
+                          value={editingMinute} 
+                          onChange={(e) => setEditingMinute(e.target.value)}
+                          className="time-select"
+                        >
+                          {minuteOptions.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </div>
+                    ) : (
+                      <div 
+                        className="expense-time clickable" 
+                        onClick={() => isMyExpense && startEditingExpense(expense)}
+                        title={isMyExpense ? "Click to edit" : ""}
+                      >
+                        {expense.time || '--:--'}
+                      </div>
+                    )}
+                    
                     <div className="expense-category">{getCategoryEmoji(expense.category)}</div>
+                    
                     <div className="expense-details">
                       <div className="amount-row">
                         <span className="original">{expense.amount.toLocaleString()} {expense.currency}</span>
                         <span className="arrow">→</span>
                         <span className="converted">{(expense.amount_krw || convertToKRW(expense.amount, expense.currency)).toLocaleString()} KRW</span>
                       </div>
-                      <div className="place">{expense.place || expense.description || 'No place'}</div>
+                      
+                      {/* Place - editable */}
+                      {isDetailEditing ? (
+                        <input
+                          type="text"
+                          className="place-input"
+                          value={editingPlace}
+                          onChange={(e) => setEditingPlace(e.target.value)}
+                          placeholder="Enter place name"
+                          autoFocus
+                        />
+                      ) : (
+                        <div 
+                          className={`place ${isMyExpense ? 'clickable' : ''}`}
+                          onClick={() => isMyExpense && startEditingExpense(expense)}
+                          title={isMyExpense ? "Click to edit" : ""}
+                        >
+                          {expense.place || expense.description || 'No place'}
+                        </div>
+                      )}
+                      
                       {!isMyExpense && (
                         <div className="shared-by">
                           <span className="shared-badge">👥 Shared</span>
@@ -736,19 +846,28 @@ export default function ExpensePage() {
                         </div>
                       )}
                     </div>
-                    <div 
-                      className={`payer-info ${isEditing ? 'active' : ''}`}
-                      onClick={() => startEditingSplit(expense.id, expense.payer_id)}
-                    >
-                      <span className="payer-name">{isMyExpense ? `${user?.username} (Me)` : payerName}</span>
-                      <span className="split-count">
-                        ÷{splits.length > 0 ? splits.length : 1}
-                      </span>
-                    </div>
+                    
+                    {/* Edit actions or Payer info */}
+                    {isDetailEditing ? (
+                      <div className="edit-actions">
+                        <button className="save-edit-btn" onClick={() => saveEditedExpense(expense.id)}>✓</button>
+                        <button className="cancel-edit-btn" onClick={cancelEditingExpense}>✕</button>
+                      </div>
+                    ) : (
+                      <div 
+                        className={`payer-info ${isSplitEditing ? 'active' : ''}`}
+                        onClick={() => startEditingSplit(expense.id, expense.payer_id)}
+                      >
+                        <span className="payer-name">{isMyExpense ? `${user?.username} (Me)` : payerName}</span>
+                        <span className="split-count">
+                          ÷{splits.length > 0 ? splits.length : 1}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Split Selection Dropdown */}
-                  {isEditing && (
+                  {isSplitEditing && (
                     <div className="split-dropdown">
                       <div className="split-dropdown-header">
                         <span>Split with (÷{splits.length || 1}):</span>

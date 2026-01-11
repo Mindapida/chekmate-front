@@ -411,6 +411,97 @@
   font-size: 14px;
 }
 
+/* Expense Edit Mode */
+.expense-card.editing {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 50%);
+  border: 2px solid #F59E0B;
+}
+
+.expense-time.clickable,
+.expense-details .place.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.expense-time.clickable:hover,
+.expense-details .place.clickable:hover {
+  color: #3B82F6;
+  text-decoration: underline;
+}
+
+.expense-time.editing {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.time-select {
+  width: 40px;
+  padding: 4px;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: white;
+  cursor: pointer;
+}
+
+.place-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 4px;
+  background: white;
+}
+
+.place-input:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.edit-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.save-edit-btn,
+.cancel-edit-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.save-edit-btn {
+  background: #10B981;
+  color: white;
+}
+
+.save-edit-btn:hover {
+  background: #059669;
+  transform: scale(1.1);
+}
+
+.cancel-edit-btn {
+  background: #EF4444;
+  color: white;
+}
+
+.cancel-edit-btn:hover {
+  background: #DC2626;
+  transform: scale(1.1);
+}
+
 /* Modal Backdrop - Centered within app container */
 .modal-backdrop {
   position: absolute;
