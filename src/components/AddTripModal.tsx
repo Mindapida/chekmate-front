@@ -5,9 +5,9 @@ import type { Trip } from '../types/api';
 interface AddTripModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateTrip: (tripData: { name: string; startDate: string; endDate: string }) => void;
-  onUpdateTrip?: (tripId: number, tripData: { name: string; startDate: string; endDate: string }) => void;
-  onDeleteTrip?: (tripId: number) => void;
+  onCreateTrip: (tripData: { name: string; startDate: string; endDate: string }) => void | Promise<void>;
+  onUpdateTrip?: (tripId: number, tripData: { name: string; startDate: string; endDate: string }) => void | Promise<void>;
+  onDeleteTrip?: (tripId: number) => void | Promise<void>;
   editingTrip?: Trip | null;
 }
 
@@ -56,14 +56,20 @@ export default function AddTripModal({ isOpen, onClose, onCreateTrip, onUpdateTr
     }, 300);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (tripName && startDate && endDate) {
-      if (isEditing && editingTrip && onUpdateTrip) {
-        onUpdateTrip(editingTrip.id, { name: tripName, startDate, endDate });
-      } else {
-        onCreateTrip({ name: tripName, startDate, endDate });
+      try {
+        if (isEditing && editingTrip && onUpdateTrip) {
+          console.log('📝 Submitting trip update:', { id: editingTrip.id, name: tripName, startDate, endDate });
+          await onUpdateTrip(editingTrip.id, { name: tripName, startDate, endDate });
+        } else {
+          console.log('📝 Creating new trip:', { name: tripName, startDate, endDate });
+          await onCreateTrip({ name: tripName, startDate, endDate });
+        }
+        handleClose();
+      } catch (error) {
+        console.error('❌ Failed to save trip:', error);
       }
-      handleClose();
     }
   };
 

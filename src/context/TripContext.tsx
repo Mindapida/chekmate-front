@@ -97,23 +97,34 @@ export function TripProvider({ children }: { children: ReactNode }) {
   const updateTrip = useCallback(async (tripId: number, tripData: { name?: string; startDate?: string; endDate?: string }): Promise<Trip> => {
     setError(null);
     
+    console.log('🔄 TripContext.updateTrip called:', { tripId, tripData });
+    
     try {
-      const updatedTrip = await tripsApi.update(tripId, {
+      const apiData = {
         name: tripData.name,
         start_date: tripData.startDate,
         end_date: tripData.endDate,
-      });
+      };
+      console.log('📡 Sending to API:', apiData);
       
-      setTrips(prev => prev.map(t => t.id === tripId ? updatedTrip : t));
+      const updatedTrip = await tripsApi.update(tripId, apiData);
+      console.log('✅ API response:', updatedTrip);
+      
+      setTrips(prev => {
+        const newTrips = prev.map(t => t.id === tripId ? updatedTrip : t);
+        console.log('📋 Updated trips list:', newTrips);
+        return newTrips;
+      });
       
       // If updated trip is current, update it
       if (currentTrip?.id === tripId) {
+        console.log('🎯 Updating current trip');
         setCurrentTripState(updatedTrip);
       }
       
       return updatedTrip;
     } catch (err) {
-      console.error('Failed to update trip:', err);
+      console.error('❌ Failed to update trip:', err);
       setError('Failed to update trip');
       throw err;
     }

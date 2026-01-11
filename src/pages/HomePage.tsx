@@ -105,7 +105,15 @@ export default function HomePage() {
   };
   
   const handleUpdateTrip = async (tripId: number, tripData: { name: string; startDate: string; endDate: string }) => {
-    await updateTrip(tripId, tripData);
+    console.log('✏️ Updating trip:', { tripId, tripData });
+    try {
+      const updated = await updateTrip(tripId, tripData);
+      console.log('✅ Trip updated:', updated);
+      setEditingTrip(null);
+    } catch (error) {
+      console.error('❌ Failed to update trip:', error);
+      alert('Failed to update trip. Please try again.');
+    }
   };
   
   const handleDeleteTrip = async (tripId: number) => {
