@@ -43,7 +43,20 @@ export default function LoginPage() {
       await login(username, password);
       navigate('/home');
     } catch (err) {
-      setError('Login failed. Please check your credentials.');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      
+      // Map error codes to user-friendly messages
+      if (errorMessage === 'SERVER_UNAVAILABLE') {
+        setError('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+      } else if (errorMessage === 'INVALID_CREDENTIALS') {
+        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+      } else if (errorMessage === 'USER_NOT_FOUND') {
+        setError('존재하지 않는 사용자입니다.');
+      } else if (errorMessage === 'SERVER_ERROR') {
+        setError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      } else {
+        setError('로그인에 실패했습니다. 다시 시도해주세요.');
+      }
     } finally {
       setIsLoading(false);
     }

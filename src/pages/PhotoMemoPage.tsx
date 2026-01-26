@@ -54,6 +54,10 @@ export default function PhotoMemoPage() {
   const [saving, setSaving] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [activeUploadType, setActiveUploadType] = useState<'expense' | 'dump' | null>(null);
+  
+  // Place editing state
+  const [editingPlaceId, setEditingPlaceId] = useState<number | null>(null);
+  const [editedPlace, setEditedPlace] = useState('');
 
   // Load data from backend
   const loadData = useCallback(async () => {
@@ -243,6 +247,30 @@ export default function PhotoMemoPage() {
     return categories[category?.toLowerCase()] || '📝';
   };
 
+  // Place editing handlers
+  const startEditingPlace = (expenseId: number, currentPlace: string | null) => {
+    setEditingPlaceId(expenseId);
+    setEditedPlace(currentPlace || '');
+  };
+
+  const handleSavePlace = async (expenseId: number) => {
+    try {
+      await expensesApi.update(expenseId, { description: editedPlace });
+      setExpenses(prev => prev.map(e => 
+        e.id === expenseId ? { ...e, place: editedPlace, description: editedPlace } : e
+      ));
+      setEditingPlaceId(null);
+      setEditedPlace('');
+    } catch (error) {
+      console.error('Failed to update place:', error);
+    }
+  };
+
+  const handleCancelEditPlace = () => {
+    setEditingPlaceId(null);
+    setEditedPlace('');
+  };
+
   if (!currentTrip) {
     return (
       <div className="photomemo-page">
@@ -326,34 +354,47 @@ export default function PhotoMemoPage() {
                 
                 return (
                   <div key={expense.id} className="expense-item">
-                    <div className="expense-info">
-                      <span className="expense-emoji">{getCategoryEmoji(expense.category)}</span>
-                      <div className="expense-details">
-                        <div className="expense-top-row">
-                          <span className="expense-time">{expense.time || '--:--'}</span>
-                          <span className="expense-category-label">{expense.category}</span>
+                    <div className="expense-card-layout">
+                      <div className="expense-main">
+                        <span className="expense-emoji">{getCategoryEmoji(expense.category)}</span>
+                        <div className="expense-details">
+                          <div className="expense-top-row">
+                            <span className="expense-time">{expense.time || '--:--'}</span>
+                            <span className="expense-category-label">{expense.category}</span>
+                          </div>
+                          {editingPlaceId === expense.id ? (
+                            <div className="place-edit-row">
+                              <input
+                                type="text"
+                                value={editedPlace}
+                                onChange={(e) => setEditedPlace(e.target.value)}
+                                className="place-edit-input"
+                                placeholder="Enter place name"
+                                autoFocus
+                              />
+                              <button className="save-btn" onClick={() => handleSavePlace(expense.id)}>✓</button>
+                              <button className="cancel-btn" onClick={handleCancelEditPlace}>✕</button>
+                            </div>
+                          ) : (
+                            <span 
+                              className="expense-place editable" 
+                              onClick={() => startEditingPlace(expense.id, expense.place || expense.description)}
+                              title="Click to edit"
+                            >
+                              {expense.place || expense.description || 'No place'} ✏️
+                            </span>
+                          )}
+                          <span className="expense-amount">{expense.amount.toLocaleString()} {expense.currency}</span>
                         </div>
-                        <span className="expense-place">{expense.place || 'No place'}</span>
-                        <span className="expense-amount">{expense.amount.toLocaleString()} {expense.currency}</span>
                       </div>
-                      <button 
-                        className="add-photo-btn"
-                        onClick={() => handlePhotoClick(expense)}
-                        disabled={saving || photos.length >= 1}
-                      >
-                        {photos.length >= 1 ? '📷' : '+ 📷'}
-                      </button>
-                    </div>
-                    {/* Expense Photos */}
-                    {photos.length > 0 && (
-                      <div className="expense-photos">
-                        {photos.map((photo) => (
-                          <div key={photo.id} className="photo-thumb">
+                      <div className="expense-photo-area">
+                        {photos.length > 0 ? (
+                          <div className="photo-thumb">
                             <PhotoImage
-                              photoId={photo.id}
-                              filePath={photo.file_path}
-                              fileUrl={photo.file_url}
-                              fileName={photo.file_name}
+                              photoId={photos[0].id}
+                              filePath={photos[0].file_path}
+                              fileUrl={photos[0].file_url}
+                              fileName={photos[0].file_name}
                               className="expense-photo-img"
                             />
                             <button 
@@ -361,15 +402,18 @@ export default function PhotoMemoPage() {
                               onClick={() => removeExpensePhoto(expense.id)}
                               disabled={saving}
                             >×</button>
-                            <span className="photo-author">
-                              {user?.username === diaryEntries.find(e => e.expense_id === expense.id)?.username 
-                                ? 'You' 
-                                : diaryEntries.find(e => e.expense_id === expense.id)?.username}
-                            </span>
                           </div>
-                        ))}
+                        ) : (
+                          <button 
+                            className="add-photo-btn"
+                            onClick={() => handlePhotoClick(expense)}
+                            disabled={saving}
+                          >
+                            📷
+                          </button>
+                        )}
                       </div>
-                    )}
+                    </div>
                     {/* Expense Memo */}
                     <div className="expense-memo">
                       <textarea

@@ -31,6 +31,31 @@ interface OcrItem {
   selected: boolean;
 }
 
+// Receipt Menu Item type (from backend)
+interface ReceiptMenuItem {
+  name: string;
+  quantity: number;
+  price: number;  // Unit price from backend
+  subtotal: number;
+  tax: number | null;
+  tip: number | null;
+  total: number;
+  participant_ids: number[]; // For frontend selection
+}
+
+interface ReceiptMenuPreview {
+  shop_name: string | null;
+  date: string | null;
+  time: string | null;
+  currency: string;
+  menu_items: ReceiptMenuItem[];
+  subtotal: number;
+  tax: number | null;
+  tip: number | null;
+  total: number;
+  available_participants: { user_id: number; username: string }[];
+}
+
 export default function ExpensePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -87,11 +112,19 @@ export default function ExpensePage() {
     setShowAddModal(true);
   };
 
-  // OCR states
+  // OCR states (screenshot)
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrItems, setOcrItems] = useState<OcrItem[]>([]);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+
+  // Receipt OCR states (paper receipt)
+  const receiptInputRef = useRef<HTMLInputElement>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [receiptData, setReceiptData] = useState<ReceiptMenuPreview | null>(null);
+  const [receiptImage, setReceiptImage] = useState<string | null>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   // Split selection state (for inline editing)
   const [editingSplitId, setEditingSplitId] = useState<number | null>(null);
@@ -432,6 +465,145 @@ export default function ExpensePage() {
     ));
   };
 
+  // Handle receipt file upload for paper receipt OCR
+  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentTrip) {
+      console.error('❌ No file or no currentTrip:', { file, currentTrip });
+      return;
+    }
+
+    console.log('🧾 Receipt Upload started:', {
+      tripId: currentTrip.id,
+      date: selectedDate,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+    });
+
+    // Show image preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setReceiptImage(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    setReceiptFile(file);
+    setShowReceiptModal(true);
+    setReceiptLoading(true);
+    setReceiptData(null);
+
+    try {
+      console.log('🔄 Calling Receipt Menu Parse API...');
+      const parsed = await ocrApi.parseReceiptMenu(currentTrip.id, selectedDate, file);
+      console.log('✅ Receipt Parsed:', parsed);
+      
+      // Add participant_ids to each menu item (default: all participants)
+      const menuItemsWithParticipants = parsed.menu_items.map(item => ({
+        ...item,
+        participant_ids: parsed.available_participants.map(p => p.user_id),
+      }));
+      
+      setReceiptData({
+        ...parsed,
+        menu_items: menuItemsWithParticipants,
+      });
+      
+    } catch (error) {
+      console.error('❌ Receipt Parse Error:', error);
+      
+      const errorMsg = error instanceof Error ? error.message : '';
+      if (errorMsg.includes('503') || errorMsg.includes('overload')) {
+        alert('⚠️ 서버가 일시적으로 바쁩니다. 잠시 후 다시 시도해주세요.\n(Server is temporarily busy. Please try again.)');
+        setShowReceiptModal(false);
+        setReceiptImage(null);
+        setReceiptFile(null);
+      } else {
+        alert('영수증을 읽을 수 없습니다. 다시 시도해주세요.\n(Could not read receipt. Please try again.)');
+        setShowReceiptModal(false);
+        setReceiptImage(null);
+        setReceiptFile(null);
+      }
+    }
+    setReceiptLoading(false);
+    
+    // Reset file input
+    if (receiptInputRef.current) {
+      receiptInputRef.current.value = '';
+    }
+  };
+
+  // Toggle participant for a menu item
+  const toggleMenuItemParticipant = (menuItemIndex: number, participantId: number) => {
+    if (!receiptData) return;
+    
+    setReceiptData(prev => {
+      if (!prev) return prev;
+      
+      const updatedItems = [...prev.menu_items];
+      const item = updatedItems[menuItemIndex];
+      
+      if (item.participant_ids.includes(participantId)) {
+        // Remove participant (but keep at least one)
+        if (item.participant_ids.length > 1) {
+          item.participant_ids = item.participant_ids.filter(id => id !== participantId);
+        }
+      } else {
+        // Add participant
+        item.participant_ids = [...item.participant_ids, participantId];
+      }
+      
+      return { ...prev, menu_items: updatedItems };
+    });
+  };
+
+  // Save receipt items as expenses
+  const handleSaveReceiptItems = async () => {
+    if (!currentTrip || !receiptData || !receiptFile) return;
+    
+    setReceiptLoading(true);
+    
+    try {
+      // Build menu expenses array
+      const menuExpenses = receiptData.menu_items.map((item, index) => ({
+        menu_item_index: index,
+        participant_ids: item.participant_ids,
+      }));
+      
+      console.log('🔄 Creating expenses from receipt menu...', menuExpenses);
+      
+      const createdExpenses = await ocrApi.createFromReceiptMenu(
+        currentTrip.id,
+        selectedDate,
+        receiptFile,
+        menuExpenses
+      );
+      
+      console.log('✅ Receipt expenses created:', createdExpenses);
+      
+      // Add created expenses to the list
+      setExpenses(prev => [...prev, ...createdExpenses]);
+      
+      // Close modal
+      setShowReceiptModal(false);
+      setReceiptData(null);
+      setReceiptImage(null);
+      setReceiptFile(null);
+      
+    } catch (error) {
+      console.error('❌ Receipt expense creation error:', error);
+      
+      const errorMsg = error instanceof Error ? error.message : '';
+      if (errorMsg.includes('503') || errorMsg.includes('overload')) {
+        alert('⚠️ 서버가 일시적으로 바쁩니다. 잠시 후 다시 시도해주세요.\n(Server is temporarily busy. Please try again.)');
+      } else {
+        alert('지출 생성에 실패했습니다. 다시 시도해주세요.\n(Failed to create expenses. Please try again.)');
+      }
+    }
+    
+    setReceiptLoading(false);
+  };
+
   const convertToKRW = (amount: number, currency: string) => {
     if (!fxRate) return amount;
     const rates: { [key: string]: number } = {
@@ -622,12 +794,20 @@ export default function ExpensePage() {
 
   return (
     <div className="expense-page">
-      {/* Hidden file input */}
+      {/* Hidden file inputs */}
       <input 
         type="file" 
         ref={fileInputRef}
         accept="image/*"
         onChange={handleFileUpload}
+        style={{ display: 'none' }}
+      />
+      <input 
+        type="file" 
+        ref={receiptInputRef}
+        accept="image/*"
+        capture="environment"
+        onChange={handleReceiptUpload}
         style={{ display: 'none' }}
       />
 
@@ -653,11 +833,15 @@ export default function ExpensePage() {
         <div className="action-row">
           <button className="action-btn screenshot" onClick={() => fileInputRef.current?.click()}>
             <span className="icon">📷</span>
-            <span>Upload Screenshot</span>
+            <span>Screenshot</span>
+          </button>
+          <button className="action-btn receipt" onClick={() => receiptInputRef.current?.click()}>
+            <span className="icon">🧾</span>
+            <span>Receipt</span>
           </button>
           <button className="action-btn manual" onClick={openAddModal}>
             <span className="icon">✏️</span>
-            <span>ADD MANUALLY</span>
+            <span>Manual</span>
           </button>
         </div>
       </div>
@@ -1126,6 +1310,146 @@ export default function ExpensePage() {
                 disabled={ocrLoading || ocrItems.filter(i => i.selected).length === 0}
               >
                 Save Selected ({ocrItems.filter(i => i.selected).length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Receipt Modal */}
+      {showReceiptModal && (
+        <div className="modal-backdrop" onClick={() => !receiptLoading && setShowReceiptModal(false)}>
+          <div className="receipt-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>🧾 영수증 스캔</h3>
+              <button 
+                className="close-modal" 
+                onClick={() => setShowReceiptModal(false)}
+                disabled={receiptLoading}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M15 5L5 15M5 5L15 15" stroke="#6B7280" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {receiptImage && (
+                <div className="receipt-image-preview">
+                  <img src={receiptImage} alt="Receipt" />
+                </div>
+              )}
+
+              {receiptLoading ? (
+                <div className="receipt-loading">
+                  <div className="spinner">🔍</div>
+                  <p>영수증 분석 중...</p>
+                  <p className="loading-sub">메뉴 항목을 추출하고 있습니다</p>
+                </div>
+              ) : receiptData ? (
+                <div className="receipt-results">
+                  {/* Shop info */}
+                  {receiptData.shop_name && (
+                    <div className="receipt-shop">
+                      <span className="shop-icon">🏪</span>
+                      <span className="shop-name">{receiptData.shop_name}</span>
+                    </div>
+                  )}
+                  
+                  {/* Menu items */}
+                  <div className="receipt-menu-list">
+                    <p className="menu-count">메뉴 {receiptData.menu_items.length}개 발견</p>
+                    
+                    {receiptData.menu_items.map((item, idx) => (
+                      <div key={idx} className="receipt-menu-item">
+                        <div className="menu-item-header">
+                          <span className="menu-name">{item.name}</span>
+                          <span className="menu-qty">x{item.quantity}</span>
+                        </div>
+                        
+                        <div className="menu-item-price">
+                          <span className="unit-price">{item.price.toLocaleString()} {receiptData.currency}</span>
+                          <span className="arrow">→</span>
+                          <span className="total-price">{item.total.toLocaleString()} {receiptData.currency}</span>
+                          {(item.tax || item.tip) && (
+                            <span className="tax-tip-badge">
+                              {item.tax ? `+tax` : ''}{item.tax && item.tip ? '/' : ''}{item.tip ? `+tip` : ''}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Participant selection for this menu item */}
+                        <div className="menu-item-participants">
+                          <span className="participants-label">누가 먹었나요?</span>
+                          <div className="participant-chips">
+                            {receiptData.available_participants.map(p => {
+                              const isSelected = item.participant_ids.includes(p.user_id);
+                              const isCurrentUser = p.user_id === user?.id;
+                              return (
+                                <button
+                                  key={p.user_id}
+                                  className={`participant-chip ${isSelected ? 'selected' : ''} ${isCurrentUser ? 'current-user' : ''}`}
+                                  onClick={() => toggleMenuItemParticipant(idx, p.user_id)}
+                                >
+                                  {isCurrentUser ? `${p.username} (나)` : p.username}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <span className="split-info">
+                            ÷{item.participant_ids.length} = {Math.floor(item.total / item.participant_ids.length).toLocaleString()} {receiptData.currency}/인
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Total summary */}
+                  <div className="receipt-total">
+                    <div className="total-row">
+                      <span>소계</span>
+                      <span>{receiptData.subtotal.toLocaleString()} {receiptData.currency}</span>
+                    </div>
+                    {receiptData.tax && (
+                      <div className="total-row tax">
+                        <span>세금</span>
+                        <span>+{receiptData.tax.toLocaleString()} {receiptData.currency}</span>
+                      </div>
+                    )}
+                    {receiptData.tip && (
+                      <div className="total-row tip">
+                        <span>팁</span>
+                        <span>+{receiptData.tip.toLocaleString()} {receiptData.currency}</span>
+                      </div>
+                    )}
+                    <div className="total-row grand">
+                      <span>총합</span>
+                      <span>{receiptData.total.toLocaleString()} {receiptData.currency}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="cancel-btn" 
+                onClick={() => {
+                  setShowReceiptModal(false);
+                  setReceiptData(null);
+                  setReceiptImage(null);
+                  setReceiptFile(null);
+                }}
+                disabled={receiptLoading}
+              >
+                취소
+              </button>
+              <button 
+                className="add-btn"
+                onClick={handleSaveReceiptItems}
+                disabled={receiptLoading || !receiptData || receiptData.menu_items.length === 0}
+              >
+                {receiptLoading ? '저장 중...' : `지출 저장 (${receiptData?.menu_items.length || 0}개)`}
               </button>
             </div>
           </div>

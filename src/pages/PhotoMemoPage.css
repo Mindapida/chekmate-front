@@ -225,15 +225,24 @@
   overflow: hidden;
 }
 
-.expense-info {
+.expense-card-layout {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px;
 }
 
+.expense-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
 .expense-emoji {
   font-size: 28px;
+  flex-shrink: 0;
 }
 
 .expense-details {
@@ -241,6 +250,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .expense-top-row {
@@ -269,6 +279,56 @@
   font-size: 15px;
   font-weight: 700;
   color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.expense-place.editable {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.expense-place.editable:hover {
+  color: #2B7FFF;
+}
+
+.place-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.place-edit-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #2B7FFF;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 600;
+  outline: none;
+}
+
+.place-edit-row .save-btn,
+.place-edit-row .cancel-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.place-edit-row .save-btn {
+  background: #10B981;
+  color: white;
+}
+
+.place-edit-row .cancel-btn {
+  background: #EF4444;
+  color: white;
 }
 
 .expense-amount {
@@ -277,17 +337,29 @@
   color: #10B981;
 }
 
+.expense-photo-area {
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .add-photo-btn {
-  padding: 10px 16px;
+  width: 50px;
+  height: 50px;
+  padding: 0;
   background: #2B7FFF;
   color: white;
   border: none;
   border-radius: 10px;
-  font-family: 'Quicksand', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 20px;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .add-photo-btn:hover {
@@ -301,6 +373,15 @@
   gap: 8px;
   padding: 0 14px 14px 14px;
   overflow-x: auto;
+}
+
+.expense-photo-area .photo-thumb {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .photo-thumb {

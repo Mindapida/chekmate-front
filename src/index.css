@@ -10,7 +10,7 @@ html, body {
   width: 100%;
   height: 100vh;
   height: 100dvh;
-  background: #1a1a2e;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   overflow: hidden;
 }
 
@@ -20,28 +20,121 @@ body {
   -moz-osx-font-smoothing: grayscale;
   display: flex;
   justify-content: center;
+  align-items: center;
 }
 
+/* iPhone Frame Container */
 #root {
-  width: 100%;
-  max-width: 430px;
-  height: 100vh;
-  height: 100dvh;
+  width: 375px;
+  height: 812px;
+  max-height: 90vh;
   background: #fafafa;
   position: relative;
-  box-shadow: 0 0 60px rgba(0, 0, 0, 0.3);
   overflow: hidden;
+  border-radius: 50px;
+  box-shadow: 
+    0 0 0 12px #1c1c1e,
+    0 0 0 14px #3a3a3c,
+    0 25px 50px rgba(0, 0, 0, 0.5),
+    0 0 100px rgba(99, 102, 241, 0.15);
+}
+
+#root > * {
+  height: 100%;
+}
+
+/* Hide scrollbar inside phone */
+#root ::-webkit-scrollbar {
+  display: none;
+}
+
+#root * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* iPhone Dynamic Island */
+#root::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 34px;
+  background: #000;
+  border-radius: 20px;
+  z-index: 9999;
+}
+
+/* Side Buttons Decoration */
+body::before {
+  content: '';
+  position: fixed;
+  left: calc(50% - 187.5px - 14px - 3px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60px;
+  background: #3a3a3c;
+  border-radius: 2px 0 0 2px;
+  margin-top: -40px;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  right: calc(50% - 187.5px - 14px - 3px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 100px;
+  background: #3a3a3c;
+  border-radius: 0 2px 2px 0;
+  margin-top: 20px;
 }
 
 /* Mobile-first: On actual mobile devices, use full width */
-@media (max-width: 430px) {
+@media (max-width: 500px) {
+  body {
+    background: #fafafa;
+    align-items: flex-start;
+  }
+  
+  body::before,
+  body::after {
+    display: none;
+  }
+  
   #root {
-    max-width: 100%;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
     box-shadow: none;
   }
   
-  body {
-    background: #fafafa;
+  #root::before,
+  #root::after {
+    display: none;
+  }
+}
+
+/* Tablet / Small laptop */
+@media (min-width: 501px) and (max-width: 900px) {
+  #root {
+    height: 750px;
+    max-height: 85vh;
+  }
+}
+
+/* Large screens */
+@media (min-width: 1200px) {
+  #root {
+    width: 390px;
+    height: 844px;
+    max-height: 92vh;
   }
 }
 

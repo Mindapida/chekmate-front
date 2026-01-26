@@ -6,7 +6,7 @@ import './BottomNav.css';
 const LAST_PAGE_KEY = 'checkmate_last_page';
 
 // Valid main pages that can be restored
-const VALID_PAGES = ['/home', '/images', '/calendar', '/mypage'];
+const VALID_PAGES = ['/home', '/images', '/calendar', '/ai-insight', '/mypage'];
 
 // Save last visited page
 export const saveLastPage = (path: string) => {
@@ -22,7 +22,7 @@ export const getLastPage = (): string => {
 };
 
 interface BottomNavProps { 
-  activeTab: 'home' | 'images' | 'calendar' | 'mypage'; 
+  activeTab: 'home' | 'images' | 'calendar' | 'ai' | 'mypage'; 
 }
 
 export default function BottomNav({ activeTab }: BottomNavProps) {
@@ -33,6 +33,7 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
     { id: 'home', label: 'HOME', icon: '🏠', path: '/home', requiresTrip: false },
     { id: 'images', label: 'IMAGES', icon: '🖼️', path: '/images', requiresTrip: true },
     { id: 'calendar', label: 'CALENDAR', icon: '📅', path: '/calendar', requiresTrip: true },
+    { id: 'ai', label: 'AI', icon: '🤖', path: '/ai-insight', requiresTrip: true },
     { id: 'mypage', label: 'MY PAGE', icon: '👤', path: '/mypage', requiresTrip: false },
   ];
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTrips } from '../context/TripContext';
@@ -286,6 +286,77 @@ export default function MyPage() {
   // Rank medals
   const rankMedals = ['🥇', '🥈', '🥉'];
 
+  // AI 알리미 상태
+  const [showAiInsight, setShowAiInsight] = useState(false);
+  const [selectedInsightCategory, setSelectedInsightCategory] = useState<string | null>(null);
+
+  // AI 인사이트 생성 (소비 패턴 분석)
+  const aiInsights = useMemo(() => {
+    if (categorySpending.length === 0) return {};
+    
+    const insights: { [key: string]: string } = {};
+    const userName = user?.username || '회원';
+    
+    // 도시 평균 대비 비율 (시뮬레이션 데이터)
+    const cityAverages: { [key: string]: number } = {
+      'food': 30000,      // 도시 평균 식비 (KRW 기준 환산)
+      'drinks': 15000,
+      'transport': 12000,
+      'hotel': 80000,
+      'shopping': 50000,
+      'activity': 25000,
+      'ticket': 20000,
+      'gift': 30000,
+      'cafe': 8000,
+    };
+    
+    categorySpending.forEach((cat, index) => {
+      const avgAmount = cityAverages[cat.category] || 20000;
+      // 예산 통화로 환산된 금액을 KRW로 다시 환산 (대략적인 비교용)
+      const amountInKRW = convertCurrency(cat.amount, budget.currency, 'KRW');
+      const ratio = Math.round((amountInKRW / avgAmount - 1) * 100);
+      
+      const categoryNames: { [key: string]: string } = {
+        'food': '식비',
+        'drinks': '음료/술',
+        'transport': '교통비',
+        'hotel': '숙박비',
+        'shopping': '쇼핑',
+        'activity': '액티비티',
+        'ticket': '티켓',
+        'gift': '선물',
+        'cafe': '카페',
+      };
+      
+      const catName = categoryNames[cat.category] || cat.name;
+      
+      if (ratio > 0) {
+        if (index === 0) {
+          insights[cat.category] = `${catName}는 이 도시 평균 대비 +${ratio}% 수준이에요. 평소 ${userName}님의 ${catName} 패턴보다 많은 편이에요. 💡`;
+        } else {
+          insights[cat.category] = `${catName}는 도시 평균 대비 +${ratio}% 정도 지출 중이에요. ${userName}님의 평소 패턴 범위 내에 있어요! 👍`;
+        }
+      } else if (ratio < -10) {
+        insights[cat.category] = `${catName}는 도시 평균보다 ${Math.abs(ratio)}% 절약하고 계세요! ${userName}님 알뜰해요! 🎉`;
+      } else {
+        insights[cat.category] = `${catName}는 도시 평균 수준이에요. ${userName}님의 보통 패턴 안에 들어요. ✨`;
+      }
+    });
+    
+    return insights;
+  }, [categorySpending, user?.username, budget.currency]);
+
+  // 소비패턴 버튼 클릭 핸들러
+  const handleInsightClick = (category: string) => {
+    if (selectedInsightCategory === category) {
+      setShowAiInsight(false);
+      setSelectedInsightCategory(null);
+    } else {
+      setSelectedInsightCategory(category);
+      setShowAiInsight(true);
+    }
+  };
+
   return (
     <div className="mypage">
       <div className="page-content">
@@ -413,6 +484,58 @@ export default function MyPage() {
               </div>
             ))
           )}
+        </div>
+
+        {/* 가격 감각 알리미 AI 섹션 */}
+        <div className="ai-insight-section">
+          <div className="ai-section-header">
+            <span className="ai-sparkle">✨</span>
+            <h2>가격 감각 알리미 AI</h2>
+          </div>
+          
+          <div className="ai-character-area">
+            <div className="ai-character">
+              <div className="ai-face">
+                <div className="ai-eyes">
+                  <span className="ai-eye">•</span>
+                  <span className="ai-eye">•</span>
+                </div>
+              </div>
+            </div>
+            
+            {showAiInsight && selectedInsightCategory && aiInsights[selectedInsightCategory] && (
+              <div className="ai-speech-bubble">
+                <div className="bubble-content">
+                  {aiInsights[selectedInsightCategory]}
+                </div>
+                <div className="bubble-tail"></div>
+              </div>
+            )}
+          </div>
+
+          <p className="ai-description">
+            소비 카테고리를 눌러 AI의 분석을 확인하세요
+          </p>
+          
+          <div className="insight-buttons">
+            {categorySpending.length > 0 ? (
+              categorySpending.map((cat) => (
+                <button
+                  key={cat.category}
+                  className={`insight-btn ${selectedInsightCategory === cat.category ? 'active' : ''}`}
+                  onClick={() => handleInsightClick(cat.category)}
+                >
+                  <span className="btn-emoji">{cat.emoji}</span>
+                  <span className="btn-text">소비패턴</span>
+                </button>
+              ))
+            ) : (
+              <div className="no-insight-data">
+                <span>📊</span>
+                <p>지출 데이터가 있으면 AI가 분석해드려요</p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="trips-summary">

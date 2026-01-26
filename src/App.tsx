@@ -12,6 +12,7 @@ import CalendarPage from './pages/CalendarPage';
 import ExpensePage from './pages/ExpensePage';
 import PhotoMemoPage from './pages/PhotoMemoPage';
 import MyPage from './pages/MyPage';
+import AiInsightPage from './pages/AiInsightPage';
 import { useEffect } from 'react';
 
 // Protected Route Component
@@ -137,6 +138,11 @@ function AppRoutes() {
       <Route path="/photo-memo" element={
         <ProtectedRoute>
           <PhotoMemoPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/ai-insight" element={
+        <ProtectedRoute>
+          <AiInsightPage />
         </ProtectedRoute>
       } />
       <Route path="/mypage" element={

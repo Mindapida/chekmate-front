@@ -40,18 +40,30 @@ export const authApi = {
   login: async (username: string, password: string): Promise<LoginResponse> => {
     console.log('🔐 Login attempt:', { username, url: `${API_BASE}/auth/login` });
     
-    const response = await fetch(`${API_BASE}/auth/login`, {
+    // Use fetchWithRetry for 503 error handling
+    const response = await fetchWithRetry(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
-    });
+    }, 3, 1000);
     
     console.log('📡 Login response:', { status: response.status, ok: response.ok });
     
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ Login failed:', errorText);
-      throw new Error('Login failed');
+      
+      // Provide specific error messages based on status code
+      if (response.status === 503) {
+        throw new Error('SERVER_UNAVAILABLE');
+      } else if (response.status === 401) {
+        throw new Error('INVALID_CREDENTIALS');
+      } else if (response.status === 404) {
+        throw new Error('USER_NOT_FOUND');
+      } else if (response.status >= 500) {
+        throw new Error('SERVER_ERROR');
+      }
+      throw new Error('LOGIN_FAILED');
     }
     
     const data = await response.json();
@@ -824,6 +836,35 @@ export const usersApi = {
   },
 };
 
+// Types for receipt menu parsing
+interface ReceiptMenuItem {
+  name: string;
+  quantity: number;
+  price: number;  // Unit price
+  subtotal: number;
+  tax: number | null;
+  tip: number | null;
+  total: number;
+}
+
+interface ReceiptMenuPreview {
+  shop_name: string | null;
+  date: string | null;
+  time: string | null;
+  currency: string;
+  menu_items: ReceiptMenuItem[];
+  subtotal: number;
+  tax: number | null;
+  tip: number | null;
+  total: number;
+  available_participants: { user_id: number; username: string }[];
+}
+
+interface MenuItemExpenseCreate {
+  menu_item_index: number;
+  participant_ids: number[];
+}
+
 export const ocrApi = {
   // Preview OCR - returns parsed items without creating
   parseReceipt: async (tripId: number, date: string, file: File): Promise<{ amount: number; currency: string; description: string; date: string | null }[]> => {
@@ -953,6 +994,93 @@ export const ocrApi = {
     }
     
     console.warn('⚠️ Unexpected response structure, returning as-is');
+    return data;
+  },
+
+  // Parse paper receipt menu items with proportional tax/tip
+  parseReceiptMenu: async (tripId: number, date: string, file: File): Promise<ReceiptMenuPreview> => {
+    console.log('🧾 Parsing receipt menu:', {
+      tripId,
+      date,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+    });
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const token = tokenManager.getToken();
+    const url = `${API_BASE}/expenses/${tripId}/${date}/receipt/menu`;
+    
+    console.log('🌐 Receipt Menu API Request:', { url, tripId, date, hasToken: !!token });
+    
+    const response = await fetchWithRetry(url, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    }, 3, 2000);
+    
+    console.log('📡 Receipt Menu API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Receipt Menu API Error:', response.status, errorText);
+      throw new Error(`Receipt parsing failed: ${response.status} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    console.log('📦 Receipt Menu Data:', data);
+    return data;
+  },
+
+  // Create expenses from receipt menu items with participant assignments
+  createFromReceiptMenu: async (
+    tripId: number, 
+    date: string, 
+    file: File, 
+    menuExpenses: MenuItemExpenseCreate[]
+  ): Promise<Expense[]> => {
+    console.log('🧾 Creating expenses from receipt menu:', {
+      tripId,
+      date,
+      fileName: file.name,
+      menuExpenses,
+    });
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('menu_expenses', JSON.stringify(menuExpenses));
+    
+    const token = tokenManager.getToken();
+    const url = `${API_BASE}/expenses/${tripId}/${date}/receipt/menu/create`;
+    
+    console.log('🌐 Receipt Menu Create API Request:', { url, tripId, date, hasToken: !!token });
+    
+    const response = await fetchWithRetry(url, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    }, 3, 3000);
+    
+    console.log('📡 Receipt Menu Create API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Receipt Menu Create API Error:', response.status, errorText);
+      throw new Error(`Receipt expense creation failed: ${response.status} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    console.log('📦 Receipt Menu Create Data:', data);
     return data;
   },
 };
